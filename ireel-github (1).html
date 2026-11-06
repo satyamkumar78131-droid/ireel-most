@@ -1,0 +1,2646 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23fa7e1e'/%3E%3Cstop offset='.5' stop-color='%23d62976'/%3E%3Cstop offset='1' stop-color='%234f5bd5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='15' fill='url(%23g)'/%3E%3Cpath d='M26 20l20 12-20 12z' fill='white'/%3E%3C/svg%3E" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#d62976" />
+    <title>ireel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Grand+Hotel&display=swap" rel="stylesheet" />
+    <style>
+      :root{
+        --bg:#ffffff; --bg-soft:#fafafa; --surface:#ffffff; --text:#0f0f0f; --text-2:#737373;
+        --border:#dbdbdb; --border-soft:#efefef; --btn:#0095f6; --btn-text:#ffffff;
+        --danger:#ed4956; --liked:#ff3040; --field:#efefef; --overlay:rgba(0,0,0,.65);
+        --page-bg:#f0f0f2; --shadow:0 8px 30px rgba(0,0,0,.18);
+        --grad:linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5);
+        --accent:#d62976; --accent-2:#fa7e1e; --accent-3:#962fbf;
+        --c-yellow:#f5a623; --c-orange:#fa7e1e; --c-pink:#d62976; --c-purple:#962fbf; --c-blue:#4f5bd5; --c-teal:#0aa06e;
+        --bubble-me:linear-gradient(45deg,#962fbf,#d62976,#fa7e1e);
+        color-scheme:light dark;
+      }
+      @media (prefers-color-scheme: dark){
+        :root{
+          --bg:#000000; --bg-soft:#0a0a0a; --surface:#121212; --text:#f5f5f5; --text-2:#a8a8a8;
+          --border:#363636; --border-soft:#262626; --field:#262626; --page-bg:#000000;
+          --shadow:0 8px 30px rgba(0,0,0,.6);
+        }
+      }
+      *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+      html,body{height:100%;}
+      body{
+        margin:0; color:var(--text);
+        background:linear-gradient(160deg,#ffe0ee 0%,#fff1de 38%,#e9e4ff 72%,#dfe9ff 100%);
+        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+        font-size:14px; line-height:1.45;
+      }
+      @media (prefers-color-scheme: dark){
+        body{background:linear-gradient(160deg,#1c0a18 0%,#171106 45%,#0d0a24 100%);}
+      }
+      button{font:inherit; color:inherit; background:none; border:0; cursor:pointer; padding:0;}
+      input,textarea,select{font:inherit; color:inherit;}
+      img,video{display:block; max-width:100%;}
+      svg{display:block;}
+
+      /* ---------- App shell ---------- */
+      .app{
+        max-width:480px; margin:0 auto; height:100dvh; background:var(--bg);
+        display:flex; flex-direction:column; position:relative; overflow:hidden;
+      }
+      @media (min-width:520px){
+        .app{border-left:1px solid var(--border); border-right:1px solid var(--border);}
+      }
+
+      /* ---------- Header ---------- */
+      header{
+        height:54px; flex:0 0 54px; display:flex; align-items:center; justify-content:space-between;
+        padding:0 14px; border-bottom:1px solid var(--border-soft); background:var(--bg); z-index:30;
+        position:relative;
+      }
+      header::after{
+        content:""; position:absolute; left:0; right:0; bottom:-1px; height:2.5px; background:var(--grad);
+      }
+      .logo{
+        font-family:"Grand Hotel",cursive; font-size:31px; line-height:1; letter-spacing:.5px; padding-top:4px;
+        background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent;
+      }
+      .head-title{font-size:17px; font-weight:700;}
+      .head-actions{display:flex; align-items:center; gap:20px;}
+      .icon-btn{position:relative; display:grid; place-items:center; width:26px; height:26px;}
+      .icon-btn:active{transform:scale(.9);}
+      .badge{
+        position:absolute; top:-5px; right:-7px; min-width:17px; height:17px; padding:0 4px;
+        background:var(--danger); color:#fff; font-size:10.5px; font-weight:700; border-radius:9px;
+        display:grid; place-items:center; border:2px solid var(--bg);
+      }
+      .badge[hidden]{display:none;}
+
+      /* ---------- Views ---------- */
+      main{flex:1; position:relative; overflow:hidden;}
+      .view{position:absolute; inset:0; overflow-y:auto; overscroll-behavior:contain; display:none; background:var(--bg);}
+      .view.active{display:block;}
+      .view.no-scroll{overflow:hidden; display:none;}
+      .view.no-scroll.active{display:flex; flex-direction:column;}
+
+      /* ---------- Stories ---------- */
+      .stories{
+        display:flex; gap:16px; padding:14px 14px 10px; overflow-x:auto; scrollbar-width:none;
+        border-bottom:1px solid var(--border-soft);
+      }
+      .stories::-webkit-scrollbar{display:none;}
+      .story{display:flex; flex-direction:column; align-items:center; gap:5px; flex:0 0 auto; width:66px;}
+      .story .ring{
+        width:64px; height:64px; border-radius:50%; padding:3px;
+        background:conic-gradient(from 210deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75);
+      }
+      .story.seen .ring{background:var(--border);}
+      .story .ring img,.story .ring video,.story .ring .avatar-fallback{
+        width:100%; height:100%; border-radius:50%; object-fit:cover; border:2.5px solid var(--bg);
+        background:var(--field);
+      }
+      .ring-wrap > img.avatar,.ring-wrap > .avatar-fallback{border-radius:50%;}
+      .story .name{font-size:12px; max-width:66px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+      .story .add-badge{
+        position:absolute; right:-1px; bottom:-1px; width:21px; height:21px; border-radius:50%;
+        background:var(--grad); color:#fff; display:grid; place-items:center; border:2.5px solid var(--bg);
+        font-size:15px; font-weight:600; line-height:1;
+      }
+      .ring-wrap{position:relative;}
+
+      .avatar-fallback{
+        display:grid; place-items:center; font-weight:700; color:#fff;
+        background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+      }
+
+      /* ---------- Posts ---------- */
+      .post{border-bottom:1px solid var(--border-soft); padding-bottom:10px; margin-bottom:6px;}
+      .post-head{display:flex; align-items:center; gap:10px; padding:9px 12px;}
+      .post-head .avatar{width:34px; height:34px; border-radius:50%; object-fit:cover; background:var(--field); flex:0 0 auto;}
+      .post-head .avatar-fallback{width:34px; height:34px; border-radius:50%; font-size:14px; flex:0 0 auto;}
+      .post-head .who{flex:1; min-width:0;}
+      .follow-btn{color:var(--accent); font-weight:700; font-size:13px; padding:5px 2px; white-space:nowrap;}
+      .follow-btn.following{color:var(--text-2);}
+      .follow-btn:active{opacity:.6;}
+      .reel-follow{
+        color:#fff; font-weight:700; font-size:12.5px; border:1.5px solid #fff; border-radius:8px;
+        padding:3px 10px; margin-left:2px; text-shadow:none;
+      }
+      .reel-follow.following{opacity:.65; border-color:rgba(255,255,255,.6);}
+      .post-head .uname{font-weight:700; font-size:13.5px;}
+      .post-head .sub{color:var(--text-2); font-size:12px;}
+      .media-wrap{position:relative; background:#000; overflow:hidden;}
+      .media-wrap img,.media-wrap video{width:100%; max-height:78dvh; object-fit:contain; background:#000; margin:0 auto;}
+      .heart-pop{
+        position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; opacity:0;
+      }
+      .heart-pop svg{filter:drop-shadow(0 4px 18px rgba(0,0,0,.45));}
+      .heart-pop.go{animation:pop .8s ease forwards;}
+      @keyframes pop{
+        0%{opacity:0; transform:scale(.3);}
+        20%{opacity:1; transform:scale(1.15);}
+        35%{transform:scale(.95);}
+        55%{opacity:1; transform:scale(1);}
+        100%{opacity:0; transform:scale(1.05) translateY(-8px);}
+      }
+      .post-actions{display:flex; align-items:center; gap:16px; padding:9px 12px 4px;}
+      .post-actions .spacer{flex:1;}
+      .act-btn{display:grid; place-items:center; width:26px; height:26px;}
+      .act-btn:active{transform:scale(.88);}
+      .act-btn.liked svg path{fill:var(--liked); stroke:var(--liked);}
+      .act-btn.saved svg path{fill:currentColor;}
+      .likes-line{padding:2px 12px 0; font-weight:700; font-size:13.5px;}
+      .caption-line{padding:2px 12px 0; font-size:13.5px; overflow-wrap:anywhere;}
+      .caption-line .uname{font-weight:700; margin-right:6px;}
+      .comments-toggle{padding:3px 12px 0; color:var(--text-2); font-size:13.5px; text-align:left;}
+      .comments-box{padding:2px 12px 0; display:none;}
+      .comments-box.open{display:block;}
+      .comment{font-size:13.5px; padding:2px 0; overflow-wrap:anywhere;}
+      .comment .uname{font-weight:700; margin-right:6px;}
+      .comment-form{display:flex; gap:8px; margin-top:6px;}
+      .comment-form input{
+        flex:1; border:0; background:transparent; outline:none; font-size:13.5px; color:var(--text);
+      }
+      .comment-form button{color:var(--btn); font-weight:700; font-size:13.5px;}
+      .time-line{padding:4px 12px 0; color:var(--text-2); font-size:11px; letter-spacing:.2px; text-transform:uppercase;}
+
+      /* ---------- Empty states ---------- */
+      .empty{padding:56px 34px; text-align:center; color:var(--text-2);}
+      .empty .e-icon{
+        width:88px; height:88px; margin:0 auto 16px; border:2px solid var(--accent); border-radius:50%;
+        display:grid; place-items:center; color:var(--accent);
+      }
+      .empty h2{color:var(--text); font-size:21px; margin:0 0 6px;}
+      .empty p{margin:0 0 18px; font-size:14px;}
+      .btn{
+        display:inline-flex; align-items:center; justify-content:center; gap:8px;
+        background:var(--grad); color:var(--btn-text); font-weight:700; font-size:14px;
+        padding:9px 20px; border-radius:9px;
+      }
+      .btn:active{opacity:.75;}
+      .btn.ghost{background:var(--field); color:var(--text);}
+      .btn.block{width:100%;}
+      .btn.danger-ghost{background:var(--field); color:var(--danger);}
+
+      /* ---------- Explore ---------- */
+      .search-bar{padding:12px; position:sticky; top:0; background:var(--bg); z-index:5;}
+      .search-bar input{
+        width:100%; border:0; outline:none; background:var(--field); border-radius:10px;
+        padding:9px 14px; font-size:14.5px; color:var(--text);
+      }
+      .search-bar input:focus{box-shadow:0 0 0 2px var(--accent);}
+      .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:2px;}
+      .grid .cell{position:relative; aspect-ratio:1; background:var(--field); overflow:hidden; cursor:pointer;}
+      .grid .cell img,.grid .cell video{width:100%; height:100%; object-fit:cover;}
+      .grid .cell .reel-tag{position:absolute; top:6px; right:6px; color:#fff; filter:drop-shadow(0 1px 4px rgba(0,0,0,.6));}
+      .grid-msg{padding:38px 30px; text-align:center; color:var(--text-2);}
+
+      /* ---------- Reels ---------- */
+      .reels-track{flex:1; overflow-y:auto; scroll-snap-type:y mandatory; scrollbar-width:none; background:#000;}
+      .reels-track::-webkit-scrollbar{display:none;}
+      .reel-slide{
+        height:100%; scroll-snap-align:start; scroll-snap-stop:always; position:relative; background:#000;
+        display:flex; align-items:center; justify-content:center;
+      }
+      .reel-slide video{width:100%; height:100%; object-fit:contain;}
+      .reel-rail{
+        position:absolute; right:8px; bottom:74px; display:flex; flex-direction:column; gap:20px; align-items:center; z-index:3;
+      }
+      .rail-btn{display:flex; flex-direction:column; align-items:center; gap:3px; color:#fff; font-size:12px; font-weight:600;}
+      .rail-btn .bubble{
+        width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,.14);
+        display:grid; place-items:center; backdrop-filter:blur(2px);
+      }
+      .rail-btn.liked .bubble svg path{fill:var(--liked); stroke:var(--liked);}
+      .rail-btn.saved .bubble svg path{fill:#fff;}
+      .reel-meta{position:absolute; left:12px; right:76px; bottom:18px; color:#fff; z-index:3; text-shadow:0 1px 6px rgba(0,0,0,.55);}
+      .reel-meta .uname{font-weight:700; display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+      .reel-meta .uname img,.reel-meta .uname .avatar-fallback{width:32px; height:32px; border-radius:50%; object-fit:cover;}
+      .reel-progress{position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(255,255,255,.25); z-index:4;}
+      .reel-progress i{display:block; height:100%; width:0; background:var(--grad);}
+      .reel-empty{flex:1; display:flex; align-items:center; justify-content:center; background:#000;}
+
+      /* ---------- Notifications / messages ---------- */
+      .note-row{display:flex; gap:12px; padding:13px 14px; align-items:flex-start;}
+      .note-row .avatar{width:42px; height:42px; border-radius:50%; object-fit:cover; background:var(--field); flex:0 0 auto;}
+      .note-row .avatar-fallback{width:42px; height:42px; border-radius:50%; font-size:16px; flex:0 0 auto;}
+      .note-row p{margin:0; font-size:13.5px;}
+      .note-row .when{color:var(--text-2); font-size:12px;}
+
+      /* ---------- Profile ---------- */
+      .profile-top{display:flex; align-items:center; gap:26px; padding:18px 18px 8px;}
+      .profile-top .avatar{width:82px; height:82px; border-radius:50%; object-fit:cover; background:var(--field);}
+      .profile-top .avatar-fallback{width:82px; height:82px; border-radius:50%; font-size:30px;}
+      .stats{flex:1; display:flex; justify-content:space-around; text-align:center;}
+      .stats .num{font-weight:800; font-size:17px;}
+      .stats .lab{font-size:13px; color:var(--text);}
+      .profile-info{padding:2px 18px 12px;}
+      .profile-info .pname{font-weight:700;}
+      .profile-info .pbio{white-space:pre-wrap; overflow-wrap:anywhere;}
+      .profile-info .pemail{color:var(--text-2); font-size:13px; margin-top:2px;}
+      .profile-btns{display:flex; gap:8px; padding:0 18px 14px;}
+      .profile-btns .btn{flex:1; padding:8px 10px; font-size:13.5px;}
+      .profile-tabs{display:flex; border-top:1px solid var(--border-soft);}
+      .profile-tabs button{
+        flex:1; padding:9px 0; display:grid; place-items:center; color:var(--text-2);
+        border-bottom:1.5px solid transparent; margin-bottom:-1px;
+      }
+      .profile-tabs button.on{color:var(--accent); border-bottom-color:var(--accent);}
+      .admin-chip{
+        display:inline-block; margin-left:8px; padding:1px 8px; border-radius:20px; vertical-align:2px;
+        background:var(--grad); color:#fff; font-size:11px; font-weight:700;
+      }
+
+      /* ---------- Download card ---------- */
+      .dl-card{margin:16px; border:1px solid var(--border); border-radius:14px; padding:18px; background:var(--surface);}
+      .dl-card h3{margin:0 0 4px; font-size:16.5px;}
+      .dl-card p{margin:0 0 12px; color:var(--text-2); font-size:13.5px;}
+      .dl-card ol{margin:10px 0 14px; padding-left:20px; color:var(--text); font-size:13.5px;}
+      .dl-card ol li{margin:5px 0;}
+      .dl-card a{color:var(--btn); font-weight:600; text-decoration:none;}
+      .dl-note{font-size:12.5px; color:var(--text-2); margin-top:12px;}
+
+      /* ---------- Shared feed ---------- */
+      .btn[hidden]{display:none;}
+      .banner{
+        display:flex; align-items:center; justify-content:space-between; gap:10px;
+        padding:9px 14px; color:var(--text); font-size:13px;
+        background:linear-gradient(90deg,rgba(250,126,30,.14),rgba(214,41,118,.14),rgba(150,47,191,.14));
+        border-bottom:1px solid var(--border-soft);
+      }
+      .banner button{color:var(--accent); font-weight:700; font-size:13px; white-space:nowrap;}
+      .banner.on{background:#e7f6ec; color:#14532d;}
+      @media (prefers-color-scheme: dark){ .banner.on{background:#0f2e1a; color:#b7f0c6;} }
+      .sql-box{
+        width:100%; border:1px solid var(--border); background:var(--bg-soft); border-radius:9px;
+        padding:10px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px;
+        line-height:1.5; color:var(--text); resize:vertical;
+      }
+      .steps{margin:10px 0; padding-left:20px; font-size:13.5px;}
+      .steps li{margin:5px 0;}
+      .steps a{color:var(--btn); font-weight:600; text-decoration:none;}
+
+      /* ---------- Bottom nav ---------- */
+      nav{
+        flex:0 0 calc(52px + env(safe-area-inset-bottom)); display:flex; align-items:flex-start;
+        padding:10px 8px env(safe-area-inset-bottom); border-top:1px solid var(--border-soft);
+        background:var(--bg); z-index:30;
+      }
+      nav button{flex:1; display:grid; place-items:center; height:34px; color:var(--text-2); border-radius:12px;}
+      nav button.on{color:var(--accent); background:linear-gradient(180deg,rgba(214,41,118,.13),rgba(250,126,30,.13));}
+      nav button.on[data-nav="home"]{color:var(--c-orange);}
+      nav button.on[data-nav="explore"]{color:var(--c-pink);}
+      nav button.on[data-nav="reels"]{color:var(--c-blue);}
+      nav button.on[data-nav="profile"]{color:var(--c-purple); background:linear-gradient(180deg,rgba(150,47,191,.13),rgba(79,91,213,.13));}
+      nav button[data-nav="profile"]{color:var(--text);}
+      nav button:active{transform:scale(.9);}
+      nav .nav-avatar{width:27px; height:27px; border-radius:50%; object-fit:cover; background:var(--field);}
+      nav .nav-avatar-fb{width:27px; height:27px; border-radius:50%; font-size:12px;}
+      nav button.on .nav-avatar{outline:2px solid var(--text); outline-offset:1.5px;}
+
+      /* ---------- Sheets & modals ---------- */
+      .scrim{
+        position:absolute; inset:0; background:var(--overlay); z-index:60; display:none;
+        align-items:flex-end; justify-content:center;
+      }
+      .scrim.open{display:flex;}
+      .sheet{
+        width:100%; max-width:480px; background:var(--surface); border-radius:16px 16px 0 0;
+        padding:10px 14px calc(16px + env(safe-area-inset-bottom)); animation:up .22s ease;
+        max-height:88dvh; overflow-y:auto;
+      }
+      .sheet.center{border-radius:16px; margin:0 18px; align-self:center; padding:20px;}
+      .scrim.center{align-items:center;}
+      @keyframes up{from{transform:translateY(26px); opacity:.4;} to{transform:none; opacity:1;}}
+      .grab{width:38px; height:4.5px; border-radius:3px; background:var(--border); margin:2px auto 12px;}
+      .sheet h3{margin:2px 0 12px; font-size:16px; text-align:center;}
+      .sheet-row{
+        width:100%; display:flex; align-items:center; gap:13px; padding:12px 4px; text-align:left;
+        font-size:14.5px; border-bottom:1px solid var(--border-soft);
+      }
+      .sheet-row:last-child{border-bottom:0;}
+      .sheet-row.danger{color:var(--danger); font-weight:600;}
+      .field{margin-bottom:12px;}
+      .field label{display:block; font-size:12.5px; font-weight:700; color:var(--text-2); margin-bottom:5px;}
+      .field input,.field textarea,.field select{
+        width:100%; border:1px solid var(--border); background:var(--bg); border-radius:9px;
+        padding:10px 12px; outline:none; font-size:14.5px; color:var(--text);
+      }
+      .field textarea{resize:vertical; min-height:64px;}
+      .seg{display:flex; background:var(--field); border-radius:10px; padding:3px; gap:3px;}
+      .seg button{flex:1; padding:8px 0; border-radius:8px; font-weight:700; font-size:13.5px; color:var(--text-2);}
+      .seg button.on{background:var(--surface); color:var(--accent); box-shadow:0 1px 5px rgba(0,0,0,.16);}
+      .comment-form button{color:var(--accent); font-weight:700; font-size:13.5px;}
+      .pick-zone{
+        border:1.5px dashed var(--border); border-radius:12px; padding:26px 14px; text-align:center;
+        color:var(--text-2); cursor:pointer;
+      }
+      .pick-zone strong{color:var(--accent); display:block; font-size:15px; margin-bottom:3px;}
+      .stats .num{font-weight:800; font-size:17px; color:var(--accent-3);}
+      @media (prefers-color-scheme: dark){ .stats .num{color:#c77dff;} }
+      .preview-media{border-radius:12px; overflow:hidden; background:#000; margin-bottom:12px; display:none;}
+      .preview-media img,.preview-media video{width:100%; max-height:300px; object-fit:contain; margin:0 auto;}
+
+      /* ---------- Story viewer ---------- */
+      .viewer{position:absolute; inset:0; background:#000; z-index:80; display:none; flex-direction:column;}
+      .viewer.open{display:flex;}
+      .viewer .v-top{padding:12px 12px 6px; z-index:3;}
+      .v-bars{display:flex; gap:5px; margin-bottom:10px;}
+      .v-bars .bar{flex:1; height:2.5px; border-radius:2px; background:rgba(255,255,255,.35); overflow:hidden;}
+      .v-bars .bar i{display:block; height:100%; width:0; background:#fff;}
+      .v-user{display:flex; align-items:center; gap:9px; color:#fff; font-weight:700; font-size:13.5px;}
+      .v-user img,.v-user .avatar-fallback{width:32px; height:32px; border-radius:50%; object-fit:cover;}
+      .v-user .when{color:rgba(255,255,255,.75); font-weight:400; font-size:12.5px;}
+      .v-user .x{margin-left:auto; color:#fff; padding:4px;}
+      .v-body{flex:1; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden;}
+      .v-body img,.v-body video{max-width:100%; max-height:100%; object-fit:contain;}
+      .v-tap{position:absolute; top:0; bottom:0; width:50%;}
+      .v-tap.left{left:0;} .v-tap.right{right:0;}
+
+      /* ---------- Colorful touches ---------- */
+      #profileAvatar{display:grid; place-items:center; border-radius:50%; padding:3.5px; background:conic-gradient(from 210deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75); flex:0 0 auto;}
+      #profileAvatar img,#profileAvatar .avatar-fallback{border:2.5px solid var(--bg);}
+      .stats .s-followers{color:var(--c-pink);}
+      .stats .s-following{color:var(--c-blue);}
+      .logo-mark{
+        width:32px; height:32px; border-radius:9px; background:var(--grad); display:grid; place-items:center;
+        color:#fff; flex:0 0 auto; box-shadow:0 3px 10px rgba(214,41,118,.35);
+      }
+      .logo-wrap{display:flex; align-items:center; gap:9px;}
+      .logo-wrap[hidden]{display:none;}
+      .post-head [data-user],.reel-meta [data-user]{cursor:pointer;}
+      .search-chips{display:flex; gap:8px; padding:0 12px 10px; flex-wrap:wrap;}
+      .chip{
+        padding:6px 13px; border-radius:20px; font-size:12.5px; font-weight:700; color:#fff;
+      }
+      .chip.c1{background:linear-gradient(45deg,#fa7e1e,#f5a623);}
+      .chip.c2{background:linear-gradient(45deg,#d62976,#fa7e1e);}
+      .chip.c3{background:linear-gradient(45deg,#962fbf,#d62976);}
+      .chip.c4{background:linear-gradient(45deg,#4f5bd5,#962fbf);}
+      .chip.c5{background:linear-gradient(45deg,#0aa06e,#4f5bd5);}
+
+      /* ---------- Accounts ---------- */
+      .auth-band{
+        margin:-20px -20px 16px; padding:22px 20px 16px; background:var(--grad); color:#fff;
+        border-radius:16px 16px 0 0; text-align:center;
+      }
+      .auth-band .ab-logo{font-family:"Grand Hotel",cursive; font-size:34px; line-height:1;}
+      .auth-band p{margin:4px 0 0; font-size:13px; opacity:.92;}
+      .acct-card{margin:0 16px 16px; border:1px solid var(--border); border-radius:14px; padding:14px 16px; background:var(--surface);}
+      .acct-card h3{margin:0 0 3px; font-size:15.5px;}
+      .acct-card p{margin:0 0 10px; color:var(--text-2); font-size:13px;}
+      .acct-row{display:flex; gap:8px; flex-wrap:wrap;}
+      .acct-row .btn{flex:1; padding:8px 10px; font-size:13px; white-space:nowrap;}
+      .switch-row{
+        width:100%; display:flex; align-items:center; gap:12px; padding:11px 4px; text-align:left;
+        border-bottom:1px solid var(--border-soft); font-size:14.5px;
+      }
+      .switch-row:last-child{border-bottom:0;}
+      .switch-row .who{flex:1; min-width:0;}
+      .switch-row .who .un{font-weight:700;}
+      .switch-row .who .nm{color:var(--text-2); font-size:12.5px;}
+      .switch-row .tick{color:var(--c-teal); font-weight:800;}
+
+      /* ---------- People / user profile ---------- */
+      .person-row{
+        width:100%; display:flex; align-items:center; gap:12px; padding:11px 14px; text-align:left;
+      }
+      .person-row .avatar,.person-row .avatar-fallback{border-radius:50%; object-fit:cover; flex:0 0 auto;}
+      .person-row .who{flex:1; min-width:0;}
+      .person-row .who .un{font-weight:700; font-size:14px;}
+      .person-row .who .nm{color:var(--text-2); font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+      .person-row .chev{color:var(--text-2);}
+      .up-head{display:flex; flex-direction:column; align-items:center; text-align:center; padding:24px 20px 6px;}
+      .up-ring{border-radius:50%; padding:3.5px; background:conic-gradient(from 210deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75); display:grid; place-items:center;}
+      .up-ring img,.up-ring .avatar-fallback{border:2.5px solid var(--bg); border-radius:50%; object-fit:cover;}
+      .up-head .un{font-size:18px; font-weight:800; margin-top:10px;}
+      .up-head .nm{color:var(--text-2); font-size:13.5px;}
+      .up-head .bio{margin-top:6px; font-size:13.5px; white-space:pre-wrap; overflow-wrap:anywhere;}
+      .up-stats{display:flex; gap:34px; justify-content:center; padding:12px 0 4px; text-align:center;}
+      .up-stats .num{font-weight:800; font-size:16.5px;}
+      .up-stats .lab{font-size:12.5px; color:var(--text-2);}
+      .up-btns{display:flex; gap:8px; padding:12px 18px 16px;}
+      .up-btns .btn{flex:1;}
+      .back-row{display:flex; align-items:center; gap:8px; padding:10px 12px 2px;}
+      .back-btn{display:flex; align-items:center; gap:5px; font-weight:700; color:var(--accent); font-size:14.5px; padding:4px 2px;}
+
+      /* ---------- Messages / chat ---------- */
+      .convo-row{
+        width:100%; display:flex; align-items:center; gap:12px; padding:12px 14px; text-align:left;
+      }
+      .convo-row .avatar,.convo-row .avatar-fallback{border-radius:50%; object-fit:cover; flex:0 0 auto;}
+      .convo-row .who{flex:1; min-width:0;}
+      .convo-row .who .un{font-weight:700; font-size:14px; display:flex; align-items:center; gap:7px;}
+      .convo-row .who .last{color:var(--text-2); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+      .convo-row .when{color:var(--text-2); font-size:11.5px; white-space:nowrap;}
+      .unread-dot{min-width:19px; height:19px; padding:0 5px; border-radius:10px; background:var(--c-pink); color:#fff; font-size:11px; font-weight:800; display:grid; place-items:center;}
+      .chat-head{
+        display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border-soft);
+        background:var(--bg); position:sticky; top:0; z-index:4;
+      }
+      .chat-head .avatar,.chat-head .avatar-fallback{border-radius:50%; object-fit:cover;}
+      .chat-head .back-btn{font-size:23px; line-height:1; padding:2px 8px 4px 0;}
+      .chat-head .un{font-weight:700; font-size:14.5px;}
+      .chat-head .nm{color:var(--text-2); font-size:12px;}
+      .chat-body{flex:1; overflow-y:auto; padding:14px 12px; display:flex; flex-direction:column; gap:7px;}
+      .msg{max-width:76%; padding:8px 12px; border-radius:18px; font-size:14px; overflow-wrap:anywhere; line-height:1.4;}
+      .msg.me{align-self:flex-end; background:var(--bubble-me); color:#fff; border-bottom-right-radius:5px;}
+      .msg.them{align-self:flex-start; background:var(--field); color:var(--text); border-bottom-left-radius:5px;}
+      .msg .mt{display:block; font-size:10.5px; opacity:.75; margin-top:3px; text-align:right;}
+      .chat-bar{
+        display:flex; gap:8px; align-items:center; padding:9px 12px calc(9px + env(safe-area-inset-bottom));
+        border-top:1px solid var(--border-soft); background:var(--bg);
+      }
+      .chat-bar input{
+        flex:1; border:1px solid var(--border); background:var(--bg-soft); border-radius:22px;
+        padding:10px 15px; outline:none; font-size:14.5px; color:var(--text); min-width:0;
+      }
+      .chat-bar input:focus{border-color:var(--accent);}
+      .chat-send{
+        width:42px; height:42px; border-radius:50%; background:var(--grad); color:#fff; display:grid; place-items:center; flex:0 0 auto;
+      }
+      .chat-send:active{transform:scale(.92);}
+      .newmsg-btn{margin:12px 14px 4px; width:calc(100% - 28px);}
+
+      /* ---------- Toast ---------- */
+      .toast{
+        position:absolute; left:50%; bottom:76px; transform:translateX(-50%) translateY(16px);
+        background:var(--grad); color:#fff; padding:10px 18px; border-radius:24px; font-size:13.5px;
+        font-weight:600; opacity:0; pointer-events:none; transition:.25s; z-index:120; max-width:88%;
+        text-align:center; box-shadow:var(--shadow);
+      }
+      .toast.show{opacity:1; transform:translateX(-50%);}
+      @media (prefers-reduced-motion: reduce){
+        .heart-pop.go{animation-duration:.01s;}
+        .sheet{animation:none;}
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app" id="app">
+      <header>
+        <div class="logo-wrap" id="headLogo">
+          <span class="logo-mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg></span>
+          <div class="logo">ireel</div>
+        </div>
+        <div class="head-title" id="headTitle" hidden></div>
+        <div class="head-actions">
+          <button class="icon-btn" id="headCreateBtn" aria-label="Create">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8" stroke-linecap="round"/></svg>
+          </button>
+          <button class="icon-btn" id="headNotifBtn" aria-label="Notifications">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.7C6 16.9 2.6 13.4 2.6 9.6 2.6 6.9 4.7 4.8 7.3 4.8c1.9 0 3.7 1.1 4.7 2.9 1-1.8 2.8-2.9 4.7-2.9 2.6 0 4.7 2.1 4.7 4.8 0 3.8-3.4 7.3-9.4 11.1z" stroke-linejoin="round"/></svg>
+            <span class="badge" id="notifBadge" hidden>0</span>
+          </button>
+          <button class="icon-btn" id="headMsgBtn" aria-label="Messages">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 3L10.2 13.8M21 3l-6.9 18-3.9-7.2L3 9.9 21 3z" stroke-linejoin="round"/></svg>
+            <span class="badge" id="msgBadge" hidden>0</span>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <!-- HOME -->
+        <section class="view active" id="view-home">
+          <div class="stories" id="storiesRow"></div>
+          <div id="feedBanner"></div>
+          <div id="feed"></div>
+        </section>
+
+        <!-- EXPLORE -->
+        <section class="view" id="view-explore">
+          <div class="search-bar"><input id="searchInput" type="search" placeholder="Search captions, usernames or people" autocomplete="off" /></div>
+          <div class="search-chips" id="exploreChips">
+            <span class="chip c1">Photos</span><span class="chip c2">Reels</span><span class="chip c3">Stories</span><span class="chip c4">People</span><span class="chip c5">Shared feed</span>
+          </div>
+          <div id="peopleResults"></div>
+          <div class="grid" id="exploreGrid"></div>
+          <div class="grid-msg" id="exploreMsg"></div>
+        </section>
+
+        <!-- REELS -->
+        <section class="view no-scroll" id="view-reels">
+          <div class="reels-track" id="reelsTrack"></div>
+          <div class="reel-empty" id="reelsEmpty">
+            <div class="empty" style="color:#a8a8a8;">
+              <div class="e-icon" style="border-color:#fff; color:#fff;">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 4l3 5M14 4l3 5M10.5 12.2v3.6l3.4-1.8-3.4-1.8z" stroke-linejoin="round"/></svg>
+              </div>
+              <h2 style="color:#fff;">No reels yet</h2>
+              <p>Upload a video as a reel and it will play here, full-screen.</p>
+              <button class="btn" data-act="create-reel">Create reel</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- NOTIFICATIONS -->
+        <section class="view" id="view-notifications">
+          <div id="notifList"></div>
+          <div class="empty" id="notifEmpty">
+            <div class="e-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20.7C6 16.9 2.6 13.4 2.6 9.6 2.6 6.9 4.7 4.8 7.3 4.8c1.9 0 3.7 1.1 4.7 2.9 1-1.8 2.8-2.9 4.7-2.9 2.6 0 4.7 2.1 4.7 4.8 0 3.8-3.4 7.3-9.4 11.1z" stroke-linejoin="round"/></svg>
+            </div>
+            <h2>No notifications yet</h2>
+            <p>When someone likes or comments on your post in the shared feed, it will show up here — along with your own posts, reels and stories.</p>
+          </div>
+        </section>
+
+        <!-- MESSAGES -->
+        <section class="view" id="view-messages">
+          <button class="btn newmsg-btn" id="newMsgBtn">＋ New message</button>
+          <div id="convoList"></div>
+          <div class="empty" id="convoEmpty">
+            <div class="e-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 3L10.2 13.8M21 3l-6.9 18-3.9-7.2L3 9.9 21 3z" stroke-linejoin="round"/></svg>
+            </div>
+            <h2>Your messages</h2>
+            <p>Every account has its own inbox. Tap <strong>New message</strong>, pick a person, and chat — shared chats are locked by the backend to the two accounts in the thread: only the sender and the recipient can read them, and sending works when you are logged in with your email account. On this device, chats also work between the accounts signed in here.</p>
+          </div>
+        </section>
+
+        <!-- USER PROFILE -->
+        <section class="view" id="view-user">
+          <div class="back-row"><button class="back-btn" id="userBackBtn">‹ Back</button></div>
+          <div id="userProfileBody"></div>
+          <div class="grid" id="userGrid"></div>
+          <div class="grid-msg" id="userGridMsg"></div>
+        </section>
+
+        <!-- CHAT -->
+        <section class="view no-scroll" id="view-chat">
+          <div class="chat-head">
+            <button class="back-btn" id="chatBackBtn" aria-label="Back to messages">‹</button>
+            <span id="chatAvatar"></span>
+            <div><div class="un" id="chatUname"></div><div class="nm" id="chatName"></div></div>
+          </div>
+          <div class="chat-body" id="chatBody"></div>
+          <form class="chat-bar" id="chatForm">
+            <input id="chatInput" type="text" placeholder="Message…" maxlength="500" autocomplete="off" />
+            <button class="chat-send" type="submit" aria-label="Send message">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 3L10.2 13.8M21 3l-6.9 18-3.9-7.2L3 9.9 21 3z" stroke-linejoin="round"/></svg>
+            </button>
+          </form>
+        </section>
+
+        <!-- PROFILE -->
+        <section class="view" id="view-profile">
+          <div class="profile-top">
+            <span id="profileAvatar"></span>
+            <div class="stats">
+              <div><div class="num" id="statPosts">0</div><div class="lab">posts</div></div>
+              <div><div class="num s-followers" id="statFollowers">0</div><div class="lab">followers</div></div>
+              <div><div class="num s-following" id="statFollowing">0</div><div class="lab">following</div></div>
+            </div>
+          </div>
+          <div class="profile-info">
+            <div class="pname"><span id="profileName"></span><span class="admin-chip" id="adminChip">ADMIN</span></div>
+            <div class="pbio" id="profileBio"></div>
+            <div class="pemail" id="profileEmail"></div>
+          </div>
+          <div class="profile-btns">
+            <button class="btn ghost" id="editProfileBtn">Edit profile</button>
+            <button class="btn ghost" id="downloadBtnTop">Download app file</button>
+          </div>
+          <div class="acct-card">
+            <h3>My account</h3>
+            <p id="accountSummary">Signed in as the admin account.</p>
+            <div class="acct-row">
+              <button class="btn" id="switchAccountBtn">Switch account</button>
+              <button class="btn ghost" id="signupBtn">Create new account</button>
+              <button class="btn ghost" id="logoutBtn">Log out</button>
+            </div>
+            <p style="margin-top:10px;">Har user ka apna account hota hai — apni profile, apni posts, apne messages. Sign up karke naya account banao; posts aur messages usi account ke naam se jayenge.</p>
+          </div>
+          <div class="profile-tabs" id="profileTabs">
+            <button class="on" data-tab="posts" aria-label="Posts">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
+            </button>
+            <button data-tab="reels" aria-label="Reels">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 4l3 5M14 4l3 5" stroke-linejoin="round"/></svg>
+            </button>
+            <button data-tab="saved" aria-label="Saved">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 3.5h11V21L12 16.8 6.5 21V3.5z" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="grid" id="profileGrid"></div>
+          <div class="grid-msg" id="profileMsg"></div>
+
+          <div class="dl-card">
+            <h3>Shared feed</h3>
+            <p id="sharedStatus"></p>
+            <button class="btn block" id="sharedSetupBtn">Set up shared feed</button>
+            <button class="btn ghost block" id="sharedRefreshBtn" style="margin-top:8px;" hidden>Refresh shared feed</button>
+          </div>
+
+          <div class="dl-card">
+            <h3>Get ireel as a file &amp; APK</h3>
+            <p>This whole app is one single file. Download it, keep it on your phone, and open it in Chrome any time — no internet needed after download.</p>
+            <button class="btn block" id="downloadBtn">Download ireel.html file</button>
+            <h3 style="margin-top:20px;">Turn the file into an APK</h3>
+            <ol>
+              <li>Tap the download button above and save <strong>ireel.html</strong>.</li>
+              <li>Open the free <a href="https://appsgeyser.com/apk-maker/" target="_blank" rel="noopener">AppsGeyser APK Maker</a> in Chrome and choose the <strong>HTML</strong> option.</li>
+              <li>Upload the ireel.html file, set the app name to <strong>ireel</strong>, and tap <strong>Create</strong>.</li>
+              <li>Download the APK it gives you and install it (Android may ask you to allow “Install unknown apps” for Chrome — allow it just for this install).</li>
+            </ol>
+            <button class="btn ghost block" id="homescreenBtn">How to add ireel to Home screen</button>
+            <p class="dl-note">Note: on its own, this file keeps posts on this device while the app is open. Turn on the Shared feed above (free Supabase backend) and everyone's posts, reels, stories, likes and comments sync into one feed that all users see.</p>
+          </div>
+
+          <div class="dl-card">
+            <h3>Make the link permanent (free hosting)</h3>
+            <p>A share link can expire. Host the downloaded file free instead, so one link works forever — and nothing is erased: everyone's shared posts live in Supabase, not inside the file.</p>
+            <ol>
+              <li>Tap <strong>Download ireel.html file</strong> above and save the file on your phone.</li>
+              <li><strong>Easiest — Netlify Drop:</strong> open <a href="https://app.netlify.com/drop" target="_blank" rel="noopener">app.netlify.com/drop</a>, sign up free, and drop the ireel.html file in. You instantly get a permanent link (like <em>yourname.netlify.app</em>) to share with everyone.</li>
+              <li><strong>Or GitHub Pages:</strong> sign up free at <a href="https://github.com" target="_blank" rel="noopener">github.com</a>, create a public repo named <em>yourname.github.io</em>, and upload the file renamed to <strong>index.html</strong> — your link becomes <em>https://yourname.github.io</em>.</li>
+              <li>Whenever you download a newer ireel.html later, just upload it to the same place again — the link stays the same and all shared posts, likes and comments stay untouched.</li>
+            </ol>
+          </div>
+        </section>
+      </main>
+
+      <nav id="bottomNav">
+        <button data-nav="home" class="on" aria-label="Home">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.6L12 3l9 7.6V20a1.5 1.5 0 0 1-1.5 1.5H14v-6.5h-4v6.5H4.5A1.5 1.5 0 0 1 3 20V10.6z" stroke-linejoin="round"/></svg>
+        </button>
+        <button data-nav="explore" aria-label="Search and explore">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16.6 16.6" stroke-linecap="round"/></svg>
+        </button>
+        <button data-nav="create" aria-label="Create">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8" stroke-linecap="round"/></svg>
+        </button>
+        <button data-nav="reels" aria-label="Reels">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 4l3 5M14 4l3 5M10.5 12.2v3.6l3.4-1.8-3.4-1.8z" stroke-linejoin="round"/></svg>
+        </button>
+        <button data-nav="profile" aria-label="Profile"><span id="navAvatar"></span></button>
+      </nav>
+
+      <!-- CREATE SHEET -->
+      <div class="scrim" id="createScrim">
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>Create new post</h3>
+          <div class="pick-zone" id="pickZone">
+            <strong>Select photo or video</strong>
+            <span>from your phone gallery</span>
+          </div>
+          <div class="preview-media" id="previewMedia"></div>
+          <div class="field">
+            <label>Post as</label>
+            <div class="seg" id="typeSeg">
+              <button class="on" data-type="post">Post</button>
+              <button data-type="reel">Reel</button>
+              <button data-type="story">Story</button>
+            </div>
+          </div>
+          <div class="field" id="captionField">
+            <label for="captionInput">Caption</label>
+            <textarea id="captionInput" placeholder="Write a caption…"></textarea>
+          </div>
+          <button class="btn block" id="shareBtn" disabled style="opacity:.45;">Share</button>
+          <button class="btn ghost block" id="createCancel" style="margin-top:8px;">Cancel</button>
+        </div>
+      </div>
+
+      <!-- EDIT PROFILE SHEET -->
+      <div class="scrim" id="editScrim">
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>Edit profile</h3>
+          <div class="pick-zone" id="avatarPick" style="margin-bottom:14px;">
+            <strong>Change profile photo</strong>
+            <span>tap to choose from gallery</span>
+          </div>
+          <div class="field"><label for="editName">Name</label><input id="editName" type="text" maxlength="40" /></div>
+          <div class="field"><label for="editUsername">Username</label><input id="editUsername" type="text" maxlength="30" autocapitalize="none" /></div>
+          <div class="field"><label for="editBio">Bio</label><textarea id="editBio" maxlength="150"></textarea></div>
+          <button class="btn block" id="editSave">Save</button>
+          <button class="btn ghost block" id="editCancel" style="margin-top:8px;">Cancel</button>
+        </div>
+      </div>
+
+      <!-- ACTION SHEET (post menu / share) -->
+      <div class="scrim" id="actionScrim">
+        <div class="sheet">
+          <div class="grab"></div>
+          <div id="actionRows"></div>
+          <button class="btn ghost block" id="actionCancel" style="margin-top:10px;">Cancel</button>
+        </div>
+      </div>
+
+      <!-- HOME SCREEN HELP -->
+      <div class="scrim center" id="helpScrim">
+        <div class="sheet center">
+          <h3>Add ireel to Home screen</h3>
+          <ol style="margin:0 0 14px; padding-left:20px; font-size:14px;">
+            <li style="margin:5px 0;">Open this page in Chrome.</li>
+            <li style="margin:5px 0;">Tap the ⋮ menu at the top right.</li>
+            <li style="margin:5px 0;">Tap <strong>Add to Home screen</strong> (or Install app).</li>
+            <li style="margin:5px 0;">Keep the name <strong>ireel</strong> and tap Add — the icon appears on your home screen like a real app.</li>
+          </ol>
+          <button class="btn block" id="helpClose">Got it</button>
+        </div>
+      </div>
+
+      <!-- SHARED FEED SETUP -->
+      <div class="scrim" id="sharedScrim">
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>Shared feed — one feed for everyone</h3>
+          <div class="field"><label for="sbName">Your display name (shown on your posts)</label><input id="sbName" type="text" maxlength="40" /></div>
+          <div class="field"><label for="sbUsername">Your username</label><input id="sbUsername" type="text" maxlength="30" autocapitalize="none" /></div>
+          <button class="btn ghost block" id="sbIdentitySave">Save my name</button>
+          <p class="dl-note">The admin is already set as satyamkumar. Anyone else should create their own account instead — Profile → My account → Create new account — so their profile, posts and messages are truly theirs. This name field is only a quick display-name shortcut.</p>
+          <h3 style="margin-top:20px;">Connect the shared backend (Supabase, free)</h3>
+          <ol class="steps">
+            <li>Open <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a>, sign up, and create a <strong>New project</strong> (name it ireel, region Mumbai or Singapore).</li>
+            <li>In the project, open <strong>SQL Editor</strong>, paste this SQL and tap <strong>Run</strong> (one time only):</li>
+          </ol>
+          <textarea id="sbSql" class="sql-box" readonly rows="11">-- ireel shared feed setup (run once)
+create table if not exists public.posts (
+  id text primary key,
+  kind text not null default 'post',
+  media_type text not null default 'image',
+  media_url text not null,
+  caption text default '',
+  username text not null,
+  display_name text default '',
+  avatar_url text default '',
+  like_count integer not null default 0,
+  created_at timestamptz not null default now()
+);
+create table if not exists public.comments (
+  id text primary key,
+  post_id text not null references public.posts(id) on delete cascade,
+  username text not null,
+  text text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.posts enable row level security;
+alter table public.comments enable row level security;
+drop policy if exists "ireel public posts" on public.posts;
+create policy "ireel public posts" on public.posts
+  for all using (true) with check (true);
+drop policy if exists "ireel public comments" on public.comments;
+create policy "ireel public comments" on public.comments
+  for all using (true) with check (true);
+insert into storage.buckets (id, name, public)
+values ('media', 'media', true)
+on conflict (id) do nothing;
+drop policy if exists "ireel public media read" on storage.objects;
+create policy "ireel public media read" on storage.objects
+  for select using (bucket_id = 'media');
+drop policy if exists "ireel public media write" on storage.objects;
+create policy "ireel public media write" on storage.objects
+  for insert with check (bucket_id = 'media');
+drop policy if exists "ireel public media delete" on storage.objects;
+create policy "ireel public media delete" on storage.objects
+  for delete using (bucket_id = 'media');
+create table if not exists public.stories (
+  id text primary key,
+  media_type text not null default 'image',
+  media_url text not null,
+  username text not null,
+  display_name text default '',
+  avatar_url text default '',
+  created_at timestamptz not null default now()
+);
+alter table public.stories enable row level security;
+drop policy if exists "ireel public stories" on public.stories;
+create policy "ireel public stories" on public.stories
+  for all using (true) with check (true);
+-- accounts, follows and direct messages (new tables only — nothing existing is changed or deleted)
+create table if not exists public.profiles (
+  id text primary key,
+  username text not null,
+  display_name text default '',
+  bio text default '',
+  avatar_url text default '',
+  created_at timestamptz not null default now()
+);
+-- note: no email column here on purpose — emails stay private inside Supabase Auth only
+alter table public.profiles enable row level security;
+do $$ begin
+  create policy "ireel public profiles" on public.profiles
+    for all using (true) with check (true);
+exception when duplicate_object then null; end $$;
+create table if not exists public.follows (
+  id text primary key,
+  follower text not null,
+  following text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.follows enable row level security;
+do $$ begin
+  create policy "ireel public follows" on public.follows
+    for all using (true) with check (true);
+exception when duplicate_object then null; end $$;
+create table if not exists public.messages (
+  id text primary key,
+  sender text not null,
+  recipient text not null,
+  text text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.messages enable row level security;
+-- direct messages are private: only the two accounts in a thread can read it,
+-- and only the sender account can post as itself (checked against the
+-- signed-in user's Supabase Auth identity, not the public key)
+drop policy if exists "ireel public messages" on public.messages;
+do $$ begin
+  create policy "ireel dm read" on public.messages
+    for select using (
+      sender = (auth.jwt() -> 'user_metadata' ->> 'username')
+      or recipient = (auth.jwt() -> 'user_metadata' ->> 'username')
+    );
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create policy "ireel dm send" on public.messages
+    for insert with check (
+      sender = (auth.jwt() -> 'user_metadata' ->> 'username')
+    );
+exception when duplicate_object then null; end $$;</textarea>
+          <button class="btn ghost block" id="sbCopySql" style="margin:8px 0 4px;">Copy SQL</button>
+          <ol class="steps" start="3">
+            <li>Open <strong>Settings → API</strong> in the project, copy the <strong>Project URL</strong> and the <strong>anon public / Publishable</strong> key — both are already filled in below for this app:</li>
+          </ol>
+          <div class="field"><label for="sbUrl">Supabase Project URL</label><input id="sbUrl" type="url" placeholder="https://xxxx.supabase.co" autocapitalize="none" /></div>
+          <div class="field"><label for="sbKey">anon public / Publishable key</label><input id="sbKey" type="text" placeholder="sb_publishable_… or eyJhbGciOi…" autocapitalize="none" /></div>
+          <p class="dl-note" style="color:var(--danger);">Never paste the service_role / Secret key — it is secret. Only the anon public / Publishable key belongs in an app.</p>
+          <button class="btn block" id="sbConnect">Connect shared feed</button>
+          <button class="btn danger-ghost block" id="sbDisconnect" style="margin-top:8px;">Disconnect</button>
+          <button class="btn ghost block" id="sharedClose" style="margin-top:8px;">Close</button>
+          <p class="dl-note">This app already has the Project URL and Publishable key built in, so the shared feed connects automatically for everyone who opens it. Just make sure the SQL above (step 2) has been run once in your Supabase project — without it, the feed cannot load. The same SQL also creates the stories table, so everyone's stories show in the story row for 24 hours — and the profiles, follows and messages tables, so every user's account profile and follow counts sync for everyone, and direct messages sync privately — the messages policies check the signed-in account's own identity, so a thread can only be read by its sender and recipient, never by other users. Profiles never store email addresses; emails stay inside Supabase Auth only. (Real password accounts use Supabase Auth: enable Email signups in Authentication → Providers if they are off.) Running the SQL again is safe: it only creates what is missing and never deletes any data.</p>
+        </div>
+      </div>
+
+      <!-- AUTH (login / signup / switch) -->
+      <div class="scrim" id="authScrim">
+        <div class="sheet">
+          <div class="auth-band">
+            <div class="ab-logo">ireel</div>
+            <p id="authBandSub">Apna account, apni duniya — posts, reels, stories aur messages, sab tumhare naam se.</p>
+          </div>
+          <div class="seg" id="authSeg" style="margin-bottom:14px;">
+            <button class="on" data-auth-tab="login">Log in</button>
+            <button data-auth-tab="signup">Sign up</button>
+            <button data-auth-tab="switch">Switch</button>
+          </div>
+          <div id="authLoginPane">
+            <div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" placeholder="you@example.com" autocapitalize="none" /></div>
+            <div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" placeholder="Your password" /></div>
+            <button class="btn block" id="loginBtn">Log in</button>
+            <p class="dl-note">Log in with the email and password you signed up with. Accounts live on the shared backend (Supabase Auth) when it is connected; accounts made on this device can also log in here while the app is open.</p>
+          </div>
+          <div id="authSignupPane" hidden>
+            <div class="field"><label for="suName">Full name</label><input id="suName" type="text" maxlength="40" placeholder="Your name" /></div>
+            <div class="field"><label for="suUsername">Username</label><input id="suUsername" type="text" maxlength="30" autocapitalize="none" placeholder="unique_username" /></div>
+            <div class="field"><label for="suEmail">Email</label><input id="suEmail" type="email" placeholder="you@example.com" autocapitalize="none" /></div>
+            <div class="field"><label for="suPassword">Password</label><input id="suPassword" type="password" placeholder="At least 6 characters" /></div>
+            <div class="field"><label for="suBio">Bio (optional)</label><textarea id="suBio" maxlength="150" placeholder="Something about you…"></textarea></div>
+            <button class="btn block" id="signupSubmitBtn">Create my account</button>
+            <p class="dl-note">Signing up creates your own profile. Your posts, reels and stories will carry your username, and your direct messages stay between you and the person you chat with. Nothing you create is ever erased by signing up or switching accounts.</p>
+          </div>
+          <div id="authSwitchPane" hidden>
+            <div id="switchList"></div>
+            <p class="dl-note">Accounts you created or logged into on this device appear here. Switching only changes who you are posting and messaging as — every account keeps its own posts and chats.</p>
+          </div>
+          <button class="btn ghost block" id="authClose" style="margin-top:10px;">Close</button>
+        </div>
+      </div>
+
+      <!-- PEOPLE PICKER (new message) -->
+      <div class="scrim" id="peopleScrim">
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>New message</h3>
+          <div class="field"><input id="peopleSearch" type="search" placeholder="Search people by name or username" autocomplete="off" /></div>
+          <div id="peopleList"></div>
+          <button class="btn ghost block" id="peopleClose" style="margin-top:10px;">Cancel</button>
+        </div>
+      </div>
+
+      <!-- POST DETAIL -->
+      <div class="scrim" id="detailScrim">
+        <div class="sheet" style="padding-left:0; padding-right:0;">
+          <div class="grab"></div>
+          <div id="detailBody"></div>
+          <button class="btn ghost block" id="detailClose" style="margin:10px 14px 0; width:calc(100% - 28px);">Close</button>
+        </div>
+      </div>
+
+      <!-- STORY VIEWER -->
+      <div class="viewer" id="storyViewer">
+        <div class="v-top">
+          <div class="v-bars" id="vBars"></div>
+          <div class="v-user">
+            <span id="vAvatar"></span>
+            <span id="vUname"></span>
+            <span class="when" id="vWhen"></span>
+            <button class="x" id="vClose" aria-label="Close story">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l14 14M19 5L5 19" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="v-body" id="vBody">
+          <div class="v-tap left" id="vPrev"></div>
+          <div class="v-tap right" id="vNext"></div>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+      <input type="file" id="mediaInput" accept="image/*,video/*" hidden />
+      <input type="file" id="storyInput" accept="image/*,video/*" hidden />
+      <input type="file" id="avatarInput" accept="image/*" hidden />
+    </div>
+    <script>
+      "use strict";
+      var $ = function (s, r) { return (r || document).querySelector(s); };
+      var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+      var state = {
+        user: {
+          name: "Satyam Kumar",
+          username: "satyamkumar",
+          bio: "",
+          email: "satyamkumar78131@gmail.com",
+          avatar: null
+        },
+        posts: [],        // {id, kind:'post'|'reel', mediaType, url, caption, liked, likeCount, saved, comments:[{username,text}], ts, author:{username,name,avatar}, shared}
+        stories: [],      // {id, mediaType, url, ts}
+        notifications: [],// {id, text, ts}
+        profileTab: "posts",
+        search: "",
+        guest: false
+      };
+      var uid = 1;
+      function nextId() { return String(uid++); }
+
+      /* ---------- shared feed (Supabase) ----------
+         To make the shared feed permanent for everyone, bake the
+         project's URL + anon public key into SB_BAKED below.
+         Until then, they can be pasted in Profile → Shared feed. */
+      var SB_BAKED = { url: "https://mxnbrcukivczvfffjzvx.supabase.co", key: "sb_publishable_Ev1dgsBrVID3C3uOS10_Bg_igyLNZOI" };
+      var sb = { url: SB_BAKED.url, key: SB_BAKED.key, connected: false, lastLoad: 0 };
+      var myLikes = {}, mySaves = {};
+      var follows = {};   // username -> true, for people this device follows (session only)
+      var followersOf = {}; // username -> count of followers (from shared follows + this session)
+      var followingOf = {}; // username -> count of accounts they follow
+
+      /* ---------- per-user accounts ----------
+         accounts: username -> {username, name, email, bio, avatar, passHash, source}
+         Kept in memory for this session only (plus the user's own profile row
+         in the shared profiles table and their Supabase Auth account when the
+         backend is connected). Passwords are never stored in the profiles
+         table and never shown anywhere. */
+      function passHash(pw) {
+        var h = 5381;
+        pw = "ireel:" + String(pw || "");
+        for (var i = 0; i < pw.length; i++) h = ((h << 5) + h + pw.charCodeAt(i)) >>> 0;
+        return "h" + h.toString(36);
+      }
+      var accounts = {};
+      accounts["satyamkumar"] = {
+        username: "satyamkumar", name: "Satyam Kumar", email: "satyamkumar78131@gmail.com",
+        bio: "", avatar: null, passHash: null, source: "admin"
+      };
+      var people = {};    // username -> {username, name, avatar, bio, email} directory for profiles & DMs
+      var dmMessages = []; // {id, sender, recipient, text, ts, shared}
+      var dmReadAt = {};   // username -> ts up to which this account has read that thread
+      var authSession = null; // Supabase Auth session for the signed-in account (memory only)
+      var currentProfileUser = null; // username shown in the user-profile view
+      var currentChatUser = null;    // username open in the chat view
+
+      function registerPerson(username, name, avatar, bio, email) {
+        if (!username) return;
+        var p = people[username] || { username: username, name: username, avatar: null, bio: "", email: "" };
+        if (name) p.name = name;
+        if (avatar) p.avatar = avatar;
+        if (bio) p.bio = bio;
+        if (email) p.email = email;
+        people[username] = p;
+      }
+      function personOf(username) {
+        return people[username] || { username: username, name: username, avatar: null, bio: "", email: "" };
+      }
+      function syncMeToPeople() {
+        registerPerson(state.user.username, state.user.name, state.user.avatar, state.user.bio, state.user.email);
+      }
+
+      /* ---------- helpers ---------- */
+      var toastTimer = null;
+      function toast(msg) {
+        var t = $("#toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2400);
+      }
+      function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+      }
+      function timeAgo(ts) {
+        var s = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+        if (s < 60) return "just now";
+        var m = Math.floor(s / 60); if (m < 60) return m + "m ago";
+        var h = Math.floor(m / 60); if (h < 24) return h + "h ago";
+        var d = Math.floor(h / 24); if (d < 7) return d + "d ago";
+        return Math.floor(d / 7) + "w ago";
+      }
+      function avatarHTML(size, extraClass) {
+        if (state.user.avatar) {
+          return '<img class="avatar ' + (extraClass || "") + '" src="' + state.user.avatar + '" alt="' + esc(state.user.username) + '" style="width:' + size + "px;height:" + size + 'px;" />';
+        }
+        var initial = (state.user.name || "S").trim().charAt(0).toUpperCase() || "S";
+        return '<span class="avatar-fallback ' + (extraClass || "") + '" style="width:' + size + "px;height:" + size + "px;font-size:" + Math.round(size * 0.42) + 'px;">' + esc(initial) + "</span>";
+      }
+      function postAuthor(p) {
+        return (p && p.author) || { username: state.user.username, name: state.user.name, avatar: null };
+      }
+      function authorAvatarHTML(author, size) {
+        author = author || {};
+        if (author.avatar) {
+          return '<img class="avatar" src="' + author.avatar + '" alt="' + esc(author.username || "") + '" style="width:' + size + "px;height:" + size + 'px;border-radius:50%;object-fit:cover;" />';
+        }
+        var nm = author.name || author.username || "?";
+        var initial = nm.trim().charAt(0).toUpperCase() || "?";
+        return '<span class="avatar-fallback" style="width:' + size + "px;height:" + size + "px;font-size:" + Math.round(size * 0.42) + 'px;border-radius:50%;">' + esc(initial) + "</span>";
+      }
+      function notify(text) {
+        state.notifications.unshift({ id: nextId(), text: text, ts: Date.now() });
+        renderNotifications();
+      }
+
+      /* ---------- icons ---------- */
+      var IC = {
+        heart: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.7C6 16.9 2.6 13.4 2.6 9.6 2.6 6.9 4.7 4.8 7.3 4.8c1.9 0 3.7 1.1 4.7 2.9 1-1.8 2.8-2.9 4.7-2.9 2.6 0 4.7 2.1 4.7 4.8 0 3.8-3.4 7.3-9.4 11.1z" stroke-linejoin="round"/></svg>',
+        heartBig: '<svg width="96" height="96" viewBox="0 0 24 24" fill="#fff"><path d="M12 20.7C6 16.9 2.6 13.4 2.6 9.6 2.6 6.9 4.7 4.8 7.3 4.8c1.9 0 3.7 1.1 4.7 2.9 1-1.8 2.8-2.9 4.7-2.9 2.6 0 4.7 2.1 4.7 4.8 0 3.8-3.4 7.3-9.4 11.1z"/></svg>',
+        comment: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.8c5 0 9 3.6 9 8 0 2.3-1.1 4.4-3 5.9V21l-5.4-2.7c-.2 0-.4 0-.6 0-5 0-9-3.6-9-8s4-8 9-8z" stroke-linejoin="round" transform="scale(-1,1) translate(-24,0)"/></svg>',
+        share: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 3L10.2 13.8M21 3l-6.9 18-3.9-7.2L3 9.9 21 3z" stroke-linejoin="round"/></svg>',
+        save: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 3.5h11V21L12 16.8 6.5 21V3.5z" stroke-linejoin="round"/></svg>',
+        dots: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+        reelTag: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 4l3 5M14 4l3 5" stroke-linejoin="round"/></svg>',
+        camera: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="18" height="13" rx="2.5"/><circle cx="12" cy="13.5" r="3.4"/><path d="M8.5 7l1.2-2.2h4.6L15.5 7"/></svg>',
+        download: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v11M7.5 10L12 14.5 16.5 10M4 19.5h16" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        copy: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
+        trash: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l.8 13h9.4l.8-13M10 11v5M14 11v5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      };
+
+      /* ---------- navigation ---------- */
+      var TITLES = { explore: "Explore", reels: "Reels", notifications: "Notifications", messages: "Messages", profile: "", user: "", chat: "" };
+      var currentView = "home";
+      function switchView(name) {
+        currentView = name;
+        $$(".view").forEach(function (v) { v.classList.toggle("active", v.id === "view-" + name); });
+        var navName = name === "chat" ? "messages" : name;
+        $$("#bottomNav button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-nav") === navName); });
+        var isHome = name === "home";
+        $("#headLogo").hidden = !isHome;
+        var t = $("#headTitle");
+        if (isHome) { t.hidden = true; }
+        else {
+          t.hidden = false;
+          t.textContent = name === "profile" ? state.user.username
+            : name === "user" ? (currentProfileUser || "")
+            : name === "chat" ? (currentChatUser || "")
+            : (TITLES[name] || "");
+        }
+        if (name !== "reels") pauseAllReels();
+        if (name === "reels") syncReelPlayback();
+        if (name === "notifications") { $("#notifBadge").hidden = true; }
+        if (name === "messages") { renderConversations(); if (sb.connected) loadMessages(false); }
+        if (name === "home" && sb.connected && Date.now() - sb.lastLoad > 20000) loadSharedFeed(false);
+        var active = $("#view-" + name);
+        if (active && name !== "reels" && name !== "chat") active.scrollTop = 0;
+      }
+
+      /* ---------- stories ---------- */
+      function storyAuthor(s) {
+        return (s && s.author) || { username: state.user.username, name: state.user.name, avatar: state.user.avatar };
+      }
+      function liveStories() {
+        var cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        return state.stories.filter(function (s) { return s.ts > cutoff; });
+      }
+      function storyGroups() {
+        var groups = {}, order = [];
+        liveStories().forEach(function (s) {
+          var un = storyAuthor(s).username;
+          if (!groups[un]) { groups[un] = []; order.push(un); }
+          groups[un].push(s);
+        });
+        order.sort(function (a, b) {
+          if (a === state.user.username) return -1;
+          if (b === state.user.username) return 1;
+          return 0;
+        });
+        return order.map(function (un) { return { username: un, author: storyAuthor(groups[un][0]), items: groups[un] }; });
+      }
+      function renderStories() {
+        var row = $("#storiesRow");
+        var html = "";
+        html += '<button class="story" id="yourStory">' +
+          '<span class="ring-wrap">' + avatarHTML(58) +
+          '<span class="add-badge">+</span></span>' +
+          '<span class="name">Your story</span></button>';
+        storyGroups().forEach(function (g) {
+          var s = g.items[g.items.length - 1];
+          var thumb = s.mediaType === "video"
+            ? '<video src="' + s.url + '" muted playsinline preload="metadata"></video>'
+            : '<img src="' + s.url + '" alt="Story by ' + esc(g.username) + '" />';
+          html += '<button class="story" data-story-group="' + esc(g.username) + '"><span class="ring">' + thumb + "</span>" +
+            '<span class="name">' + esc(g.username === state.user.username ? "You" : g.username) + "</span></button>";
+        });
+        row.innerHTML = html;
+        $("#yourStory").addEventListener("click", function () {
+          $("#storyInput").click();
+        });
+        $$("[data-story-group]", row).forEach(function (el) {
+          el.addEventListener("click", function () { openStoryViewer(el.getAttribute("data-story-group")); });
+        });
+      }
+
+      /* story viewer */
+      var viewerIdx = 0, viewerTimer = null, viewerStart = 0, viewerDur = 5000, viewerRAF = null, viewerList = [];
+      function openStoryViewer(username) {
+        viewerList = liveStories().filter(function (s) { return storyAuthor(s).username === username; });
+        if (!viewerList.length) return;
+        viewerIdx = 0;
+        $("#storyViewer").classList.add("open");
+        showStory();
+      }
+      function closeStoryViewer() {
+        $("#storyViewer").classList.remove("open");
+        clearTimeout(viewerTimer);
+        if (viewerRAF) cancelAnimationFrame(viewerRAF);
+        var v = $("#vBody video"); if (v) v.pause();
+      }
+      function showStory() {
+        var list = viewerList;
+        if (viewerIdx >= list.length) { closeStoryViewer(); return; }
+        var s = list[viewerIdx];
+        var sa = storyAuthor(s);
+        $("#vBars").innerHTML = list.map(function (_, i) {
+          var fill = i < viewerIdx ? "100%" : "0";
+          return '<span class="bar"><i style="width:' + fill + '"></i></span>';
+        }).join("");
+        $("#vAvatar").innerHTML = authorAvatarHTML(sa, 32);
+        $("#vUname").textContent = sa.username;
+        $("#vWhen").textContent = timeAgo(s.ts);
+        var body = $("#vBody");
+        $$("img,video", body).forEach(function (el) { el.remove(); });
+        var media;
+        if (s.mediaType === "video") {
+          media = document.createElement("video");
+          media.src = s.url; media.autoplay = true; media.playsInline = true; media.loop = false;
+          media.addEventListener("loadedmetadata", function () {
+            startBar(Math.min(30000, Math.max(3000, (media.duration || 8) * 1000)));
+          });
+          media.addEventListener("ended", nextStory);
+        } else {
+          media = document.createElement("img");
+          media.src = s.url; media.alt = "Story";
+          startBar(5000);
+        }
+        body.insertBefore(media, body.firstChild);
+        if (s.mediaType === "video") { var p = media.play(); if (p) p.catch(function () {}); }
+        if (s.mediaType === "image") startBar(5000);
+      }
+      function startBar(dur) {
+        clearTimeout(viewerTimer);
+        if (viewerRAF) cancelAnimationFrame(viewerRAF);
+        viewerDur = dur; viewerStart = Date.now();
+        var bar = $$("#vBars .bar i")[viewerIdx];
+        function tick() {
+          var pct = Math.min(100, ((Date.now() - viewerStart) / viewerDur) * 100);
+          if (bar) bar.style.width = pct + "%";
+          if (pct < 100) viewerRAF = requestAnimationFrame(tick);
+        }
+        tick();
+        viewerTimer = setTimeout(nextStory, dur);
+      }
+      function nextStory() {
+        if (viewerIdx < viewerList.length - 1) { viewerIdx++; showStory(); }
+        else closeStoryViewer();
+      }
+      function prevStory() {
+        if (viewerIdx > 0) { viewerIdx--; showStory(); }
+        else showStory();
+      }
+
+      /* ---------- posts ---------- */
+      function mediaHTML(p, opts) {
+        opts = opts || {};
+        if (p.mediaType === "video") {
+          return '<video src="' + p.url + '" ' + (opts.reel ? "" : "muted loop playsinline") + ' preload="metadata"></video>';
+        }
+        return '<img src="' + p.url + '" alt="' + esc(p.caption || "Photo by " + postAuthor(p).username) + '" />';
+      }
+      function postCardHTML(p) {
+        var a = postAuthor(p);
+        var comments = p.comments.map(function (c) {
+          return '<div class="comment"><span class="uname">' + esc(c.username) + "</span>" + esc(c.text) + "</div>";
+        }).join("");
+        return '<article class="post" data-post="' + p.id + '">' +
+          '<div class="post-head"><span data-user="' + esc(a.username) + '">' + authorAvatarHTML(a, 34) + "</span>" +
+            '<div class="who"><div class="uname"><span data-user="' + esc(a.username) + '">' + esc(a.username) + "</span></div>" +
+            '<div class="sub">' + (p.kind === "reel" ? "Reel · " : "") + timeAgo(p.ts) + "</div></div>" +
+            (a.username !== state.user.username
+              ? '<button class="follow-btn' + (follows[a.username] ? " following" : "") + '" data-follow="' + esc(a.username) + '">' + (follows[a.username] ? "Following" : "Follow") + "</button>"
+              : "") +
+            '<button class="act-btn" data-menu="' + p.id + '" aria-label="Post options">' + IC.dots + "</button></div>" +
+          '<div class="media-wrap" data-media="' + p.id + '">' + mediaHTML(p) +
+            '<div class="heart-pop" data-pop="' + p.id + '">' + IC.heartBig + "</div></div>" +
+          '<div class="post-actions">' +
+            '<button class="act-btn' + (p.liked ? " liked" : "") + '" data-like="' + p.id + '" aria-label="Like">' + IC.heart + "</button>" +
+            '<button class="act-btn" data-comment="' + p.id + '" aria-label="Comment">' + IC.comment + "</button>" +
+            '<button class="act-btn" data-share="' + p.id + '" aria-label="Share">' + IC.share + "</button>" +
+            '<span class="spacer"></span>' +
+            '<button class="act-btn' + (p.saved ? " saved" : "") + '" data-save="' + p.id + '" aria-label="Save">' + IC.save + "</button></div>" +
+          (p.likeCount > 0 ? '<div class="likes-line">' + p.likeCount + (p.likeCount === 1 ? " like" : " likes") + "</div>" : "") +
+          (p.caption ? '<div class="caption-line"><span class="uname">' + esc(a.username) + "</span>" + esc(p.caption) + "</div>" : "") +
+          (p.comments.length ? '<button class="comments-toggle" data-toggle-comments="' + p.id + '">View all ' + p.comments.length + (p.comments.length === 1 ? " comment" : " comments") + "</button>" : "") +
+          '<div class="comments-box" data-comments="' + p.id + '">' + comments +
+            '<form class="comment-form" data-form="' + p.id + '"><input type="text" placeholder="Add a comment…" maxlength="300" autocomplete="off" /><button type="submit">Post</button></form></div>' +
+          '<div class="time-line">' + timeAgo(p.ts) + "</div>" +
+          "</article>";
+      }
+      function findPost(id) {
+        for (var i = 0; i < state.posts.length; i++) if (String(state.posts[i].id) === String(id)) return state.posts[i];
+        return null;
+      }
+      function renderFeed() {
+        var feed = $("#feed");
+        if (!state.posts.length) {
+          var emptyCopy = sb.connected
+            ? "<h2>Welcome to the shared feed</h2><p>Nobody has posted yet. Post your first photo or video and everyone on ireel will see it here.</p>"
+            : "<h2>Welcome to ireel</h2><p>Your feed is empty. Post your first photo or video and it will appear right here.</p>";
+          feed.innerHTML = '<div class="empty"><div class="e-icon">' + IC.camera + "</div>" + emptyCopy +
+            '<button class="btn" data-act="create-post">Create your first post</button></div>';
+        } else {
+          feed.innerHTML = state.posts.map(postCardHTML).join("");
+        }
+        bindPostEvents(feed);
+        observeFeedVideos(feed);
+      }
+      function bindPostEvents(root) {
+        $$("[data-act]", root).forEach(function (el) {
+          el.addEventListener("click", function () { openCreate(el.getAttribute("data-act") === "create-reel" ? "reel" : "post"); });
+        });
+        $$("[data-like]", root).forEach(function (el) {
+          el.addEventListener("click", function () { toggleLike(el.getAttribute("data-like")); });
+        });
+        $$("[data-follow]", root).forEach(function (el) {
+          el.addEventListener("click", function () { toggleFollow(el.getAttribute("data-follow")); });
+        });
+        $$("[data-user]", root).forEach(function (el) {
+          el.addEventListener("click", function () { openUserProfile(el.getAttribute("data-user")); });
+        });
+        $$("[data-save]", root).forEach(function (el) {
+          el.addEventListener("click", function () { toggleSave(el.getAttribute("data-save")); });
+        });
+        $$("[data-comment]", root).forEach(function (el) {
+          el.addEventListener("click", function () {
+            var id = el.getAttribute("data-comment");
+            var box = $('[data-comments="' + id + '"]', root);
+            if (box) { box.classList.add("open"); var inp = $("input", box); if (inp) inp.focus(); }
+          });
+        });
+        $$("[data-toggle-comments]", root).forEach(function (el) {
+          el.addEventListener("click", function () {
+            var box = $('[data-comments="' + el.getAttribute("data-toggle-comments") + '"]', root);
+            if (box) box.classList.toggle("open");
+          });
+        });
+        $$("[data-share]", root).forEach(function (el) {
+          el.addEventListener("click", function () { openShareSheet(el.getAttribute("data-share")); });
+        });
+        $$("[data-menu]", root).forEach(function (el) {
+          el.addEventListener("click", function () { openMenuSheet(el.getAttribute("data-menu")); });
+        });
+        $$("[data-form]", root).forEach(function (form) {
+          form.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var id = form.getAttribute("data-form");
+            var inp = $("input", form);
+            var text = inp.value.trim();
+            if (!text) return;
+            var p = findPost(id);
+            if (!p) return;
+            var cmt = { username: state.user.username, text: text };
+            p.comments.push(cmt);
+            if (sb.connected && p.shared) sbInsertComment(p, cmt);
+            refreshPostSurfaces();
+            var box = $('[data-comments="' + id + '"]');
+            if (box) { box.classList.add("open"); var ni = $("input", box); if (ni) ni.focus(); }
+            toast("Comment posted");
+          });
+        });
+        $$("[data-media]", root).forEach(function (el) {
+          var lastTap = 0;
+          el.addEventListener("click", function () {
+            var now = Date.now();
+            var id = el.getAttribute("data-media");
+            var p = findPost(id);
+            if (now - lastTap < 320) {
+              var pop = $('[data-pop="' + id + '"]', el.parentElement) || $('[data-pop="' + id + '"]', el);
+              if (pop) { pop.classList.remove("go"); void pop.offsetWidth; pop.classList.add("go"); }
+              if (p && !p.liked) toggleLike(id, true);
+            } else if (p && p.mediaType === "video") {
+              var v = $("video", el);
+              if (v) { if (v.paused) v.play(); else v.pause(); }
+            }
+            lastTap = now;
+          });
+        });
+      }
+      var feedObserver = null;
+      function observeFeedVideos(root) {
+        if (feedObserver) feedObserver.disconnect();
+        if (!("IntersectionObserver" in window)) return;
+        feedObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) { var pr = e.target.play(); if (pr) pr.catch(function () {}); }
+            else e.target.pause();
+          });
+        }, { threshold: 0.55 });
+        $$("video", root).forEach(function (v) { feedObserver.observe(v); });
+      }
+      function toggleLike(id, silent) {
+        var p = findPost(id); if (!p) return;
+        p.liked = !p.liked;
+        p.likeCount += p.liked ? 1 : -1;
+        if (p.likeCount < 0) p.likeCount = 0;
+        if (p.liked) myLikes[String(p.id)] = true; else delete myLikes[String(p.id)];
+        if (sb.connected && p.shared) sbPatchLike(p);
+        refreshPostSurfaces();
+        if (!silent) toast(p.liked ? "Liked" : "Like removed");
+      }
+      function toggleFollow(username) {
+        if (!username || username === state.user.username) return;
+        var me = state.user.username;
+        if (follows[username]) {
+          delete follows[username];
+          followersOf[username] = Math.max(0, (followersOf[username] || 0) - 1);
+          followingOf[me] = Math.max(0, (followingOf[me] || 0) - 1);
+          if (sb.connected) sbUnfollow(me, username);
+          toast("Unfollowed @" + username);
+        } else {
+          follows[username] = true;
+          followersOf[username] = (followersOf[username] || 0) + 1;
+          followingOf[me] = (followingOf[me] || 0) + 1;
+          if (sb.connected) sbFollow(me, username);
+          toast("Following @" + username);
+        }
+        refreshPostSurfaces();
+        if (currentView === "user" && currentProfileUser === username) renderUserProfile();
+      }
+      function sbFollow(me, username) {
+        var row = { id: "f" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), follower: me, following: username };
+        sbApi("/rest/v1/follows", { method: "POST", body: JSON.stringify(row) }).catch(function () {});
+      }
+      function sbUnfollow(me, username) {
+        sbApi("/rest/v1/follows?follower=eq." + encodeURIComponent(me) + "&following=eq." + encodeURIComponent(username), { method: "DELETE" }).catch(function () {});
+      }
+      function toggleSave(id) {
+        var p = findPost(id); if (!p) return;
+        p.saved = !p.saved;
+        if (p.saved) mySaves[String(p.id)] = true; else delete mySaves[String(p.id)];
+        refreshPostSurfaces();
+        toast(p.saved ? "Saved to your profile" : "Removed from saved");
+      }
+      function refreshPostSurfaces() {
+        syncPeopleFromContent();
+        renderFeed();
+        renderExplore();
+        renderReels();
+        renderProfile();
+      }
+      function syncPeopleFromContent() {
+        state.posts.forEach(function (p) { var a = postAuthor(p); registerPerson(a.username, a.name, a.avatar); });
+        state.stories.forEach(function (s) { var a = storyAuthor(s); registerPerson(a.username, a.name, a.avatar); });
+        Object.keys(follows).forEach(function (u) { registerPerson(u, u, null); });
+        syncMeToPeople();
+      }
+
+      /* ---------- explore ---------- */
+      function renderExplore() {
+        var q = state.search.trim().toLowerCase();
+        var list = state.posts.filter(function (p) {
+          if (!q) return true;
+          var a = postAuthor(p);
+          return (p.caption || "").toLowerCase().indexOf(q) !== -1
+            || (a.username || "").toLowerCase().indexOf(q) !== -1
+            || (a.name || "").toLowerCase().indexOf(q) !== -1;
+        });
+        var grid = $("#exploreGrid");
+        grid.innerHTML = list.map(function (p) {
+          var inner = p.mediaType === "video"
+            ? '<video src="' + p.url + '" muted playsinline preload="metadata"></video>'
+            : '<img src="' + p.url + '" alt="' + esc(p.caption || "Explore post") + '" />';
+          return '<div class="cell" data-cell="' + p.id + '">' + inner + (p.kind === "reel" ? '<span class="reel-tag">' + IC.reelTag + "</span>" : "") + "</div>";
+        }).join("");
+        $("#exploreMsg").textContent = !state.posts.length
+          ? (sb.connected ? "Nothing to explore yet — posts from everyone will appear here." : "Nothing to explore yet — your uploads will appear here.")
+          : (list.length ? "" : 'No posts match "' + state.search + '".');
+        var pr = $("#peopleResults");
+        if (pr) {
+          var matches = Object.keys(people).map(function (k) { return people[k]; }).filter(function (p) {
+            return q && p.username !== state.user.username &&
+              (p.username.toLowerCase().indexOf(q) !== -1 || (p.name || "").toLowerCase().indexOf(q) !== -1);
+          });
+          pr.innerHTML = matches.length
+            ? '<div style="padding:2px 14px 6px; font-weight:800; font-size:13px; color:var(--accent-3);">People</div>' + matches.map(function (p) {
+                return '<button class="person-row" data-person="' + esc(p.username) + '">' + authorAvatarHTML(p, 44) +
+                  '<span class="who"><span class="un">' + esc(p.username) + '</span><br /><span class="nm">' + esc(p.name || "") + '</span></span><span class="chev">›</span></button>';
+              }).join("")
+            : "";
+          $$("[data-person]", pr).forEach(function (el) {
+            el.addEventListener("click", function () { openUserProfile(el.getAttribute("data-person")); });
+          });
+        }
+        $$("[data-cell]", grid).forEach(function (el) {
+          el.addEventListener("click", function () { openDetail(el.getAttribute("data-cell")); });
+        });
+      }
+      var detailScrimPost = null;
+      function openDetail(id) {
+        var p = findPost(id); if (!p) return;
+        detailScrimPost = id;
+        $("#detailBody").innerHTML = postCardHTML(p);
+        bindPostEvents($("#detailBody"));
+        $("#detailScrim").classList.add("open");
+      }
+
+      /* ---------- reels ---------- */
+      function renderReels() {
+        var reels = state.posts.filter(function (p) { return p.mediaType === "video"; });
+        var track = $("#reelsTrack");
+        $("#reelsEmpty").style.display = reels.length ? "none" : "flex";
+        track.style.display = reels.length ? "block" : "none";
+        track.innerHTML = reels.map(function (p) {
+          return '<div class="reel-slide" data-slide="' + p.id + '">' +
+            '<video src="' + p.url + '" loop playsinline preload="metadata"></video>' +
+            '<div class="reel-progress"><i data-progress="' + p.id + '"></i></div>' +
+            '<div class="reel-rail">' +
+              '<button class="rail-btn' + (p.liked ? " liked" : "") + '" data-rlike="' + p.id + '">' + '<span class="bubble">' + IC.heart + "</span>" + p.likeCount + "</button>" +
+              '<button class="rail-btn" data-rcomment="' + p.id + '"><span class="bubble">' + IC.comment + "</span>" + p.comments.length + "</button>" +
+              '<button class="rail-btn" data-rshare="' + p.id + '"><span class="bubble">' + IC.share + "</span>Share</button>" +
+              '<button class="rail-btn' + (p.saved ? " saved" : "") + '" data-rsave="' + p.id + '"><span class="bubble">' + IC.save + "</span>Save</button>" +
+            "</div>" +
+            '<div class="reel-meta"><div class="uname"><span data-user="' + esc(postAuthor(p).username) + '">' + authorAvatarHTML(postAuthor(p), 32) + "</span><span data-user=\"" + esc(postAuthor(p).username) + "\">" + esc(postAuthor(p).username) + "</span>" +
+            (postAuthor(p).username !== state.user.username
+              ? '<button class="reel-follow' + (follows[postAuthor(p).username] ? " following" : "") + '" data-rfollow="' + esc(postAuthor(p).username) + '">' + (follows[postAuthor(p).username] ? "Following" : "Follow") + "</button>"
+              : "") + "</div>" +
+            (p.caption ? "<div>" + esc(p.caption) + "</div>" : "") + "</div>" +
+            "</div>";
+        }).join("");
+        $$("[data-rfollow]", track).forEach(function (el) {
+          el.addEventListener("click", function () { toggleFollow(el.getAttribute("data-rfollow")); });
+        });
+        $$("[data-user]", track).forEach(function (el) {
+          el.addEventListener("click", function () { openUserProfile(el.getAttribute("data-user")); });
+        });
+        $$("[data-rlike]", track).forEach(function (el) {
+          el.addEventListener("click", function () { toggleLike(el.getAttribute("data-rlike")); });
+        });
+        $$("[data-rsave]", track).forEach(function (el) {
+          el.addEventListener("click", function () { toggleSave(el.getAttribute("data-rsave")); });
+        });
+        $$("[data-rshare]", track).forEach(function (el) {
+          el.addEventListener("click", function () { openShareSheet(el.getAttribute("data-rshare")); });
+        });
+        $$("[data-rcomment]", track).forEach(function (el) {
+          el.addEventListener("click", function () {
+            var id = el.getAttribute("data-rcomment");
+            pauseAllReels();
+            openDetail(id);
+            var box = $('[data-comments="' + id + '"]', $("#detailBody"));
+            if (box) { box.classList.add("open"); var inp = $("input", box); if (inp) inp.focus(); }
+          });
+        });
+        $$(".reel-slide video", track).forEach(function (v) {
+          v.addEventListener("click", function () { if (v.paused) v.play(); else v.pause(); });
+          v.addEventListener("timeupdate", function () {
+            var slide = v.closest(".reel-slide");
+            if (!slide) return;
+            var bar = $("[data-progress]", slide);
+            if (bar && v.duration) bar.style.width = (v.currentTime / v.duration) * 100 + "%";
+          });
+        });
+        if (currentView === "reels") syncReelPlayback();
+      }
+      var reelObserver = null;
+      function syncReelPlayback() {
+        if (reelObserver) reelObserver.disconnect();
+        if (!("IntersectionObserver" in window)) return;
+        reelObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            var v = $("video", e.target);
+            if (!v) return;
+            if (e.intersectionRatio > 0.6) { var pr = v.play(); if (pr) pr.catch(function () {}); }
+            else { v.pause(); }
+          });
+        }, { root: $("#reelsTrack"), threshold: [0.6] });
+        $$(".reel-slide").forEach(function (s) { reelObserver.observe(s); });
+      }
+      function pauseAllReels() {
+        $$("#reelsTrack video").forEach(function (v) { v.pause(); });
+      }
+
+      /* ---------- notifications ---------- */
+      function renderNotifications() {
+        var list = $("#notifList");
+        $("#notifEmpty").style.display = state.notifications.length ? "none" : "block";
+        list.innerHTML = state.notifications.map(function (n) {
+          return '<div class="note-row">' + avatarHTML(42) + "<div><p>" + esc(n.text) + '</p><span class="when">' + timeAgo(n.ts) + "</span></div></div>";
+        }).join("");
+        var badge = $("#notifBadge");
+        if (state.notifications.length && currentView !== "notifications") {
+          badge.hidden = false;
+          badge.textContent = state.notifications.length > 9 ? "9+" : String(state.notifications.length);
+        } else {
+          badge.hidden = true;
+        }
+      }
+
+      /* ---------- profile ---------- */
+      function renderProfile() {
+        $("#profileAvatar").innerHTML = avatarHTML(82);
+        $("#navAvatar").innerHTML = state.user.avatar
+          ? '<img class="nav-avatar" src="' + state.user.avatar + '" alt="Profile" />'
+          : '<span class="avatar-fallback nav-avatar-fb">' + esc((state.user.name || "S").trim().charAt(0).toUpperCase() || "S") + "</span>";
+        $("#profileName").textContent = state.user.name;
+        $("#adminChip").style.display = state.guest ? "none" : "";
+        $("#profileBio").textContent = state.user.bio || "";
+        $("#profileEmail").textContent = state.user.email;
+        $("#statPosts").textContent = String(state.posts.filter(function (p) { return postAuthor(p).username === state.user.username; }).length);
+        $("#statFollowers").textContent = String(followersOf[state.user.username] || 0);
+        $("#statFollowing").textContent = String(Math.max(Object.keys(follows).length, followingOf[state.user.username] || 0));
+        var acct = accounts[state.user.username];
+        $("#accountSummary").textContent = "Signed in as @" + state.user.username + (state.user.email ? " · " + state.user.email : "") +
+          (acct && acct.source === "supabase" ? " · account on the shared backend" : acct && acct.source === "device" ? " · account created on this device" : " · admin account");
+        if (currentView === "profile") $("#headTitle").textContent = state.user.username;
+        var tab = state.profileTab;
+        $$("#profileTabs button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === tab); });
+        var list = state.posts.filter(function (p) {
+          if (tab === "saved") return p.saved;
+          if (postAuthor(p).username !== state.user.username) return false;
+          if (tab === "reels") return p.kind === "reel" || p.mediaType === "video";
+          return true;
+        });
+        var grid = $("#profileGrid");
+        grid.innerHTML = list.map(function (p) {
+          var inner = p.mediaType === "video"
+            ? '<video src="' + p.url + '" muted playsinline preload="metadata"></video>'
+            : '<img src="' + p.url + '" alt="' + esc(p.caption || "Profile post") + '" />';
+          return '<div class="cell" data-pcell="' + p.id + '">' + inner + (p.kind === "reel" ? '<span class="reel-tag">' + IC.reelTag + "</span>" : "") + "</div>";
+        }).join("");
+        $("#profileMsg").textContent = list.length ? "" :
+          (tab === "saved" ? "Posts you save will appear here." :
+           tab === "reels" ? "Your reels will appear here." : "Your posts will appear here.");
+        $$("[data-pcell]", grid).forEach(function (el) {
+          el.addEventListener("click", function () { openDetail(el.getAttribute("data-pcell")); });
+        });
+      }
+
+      /* ---------- action sheets ---------- */
+      var sheetPostId = null;
+      function openSheet(id) { $("#" + id).classList.add("open"); }
+      function closeSheet(id) { $("#" + id).classList.remove("open"); }
+      function sheetRows(rows) {
+        $("#actionRows").innerHTML = rows.map(function (r, i) {
+          return '<button class="sheet-row' + (r.danger ? " danger" : "") + '" data-row="' + i + '">' + (r.icon || "") + esc(r.label) + "</button>";
+        }).join("");
+        $$("#actionRows [data-row]").forEach(function (el) {
+          el.addEventListener("click", function () {
+            var r = rows[parseInt(el.getAttribute("data-row"), 10)];
+            closeSheet("actionScrim");
+            if (r.fn) r.fn();
+          });
+        });
+        openSheet("actionScrim");
+      }
+      function downloadMedia(p) {
+        var a = document.createElement("a");
+        a.href = p.url;
+        a.download = "ireel-" + p.id + (p.mediaType === "video" ? ".mp4" : ".jpg");
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast("Downloading…");
+      }
+      function copyCaption(p) {
+        var text = p.caption || "";
+        function done() { toast(text ? "Caption copied" : "This post has no caption"); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+        } else { fallbackCopy(text); done(); }
+      }
+      function fallbackCopy(text) {
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.style.position = "absolute"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        ta.remove();
+      }
+      function openShareSheet(id) {
+        var p = findPost(id); if (!p) return;
+        sheetPostId = id;
+        sheetRows([
+          { icon: IC.download, label: "Download " + (p.mediaType === "video" ? "video" : "photo"), fn: function () { downloadMedia(p); } },
+          { icon: IC.copy, label: "Copy caption", fn: function () { copyCaption(p); } },
+          { icon: IC.save, label: p.saved ? "Remove from saved" : "Save post", fn: function () { toggleSave(id); } }
+        ]);
+      }
+      function openMenuSheet(id) {
+        var p = findPost(id); if (!p) return;
+        sheetPostId = id;
+        var rows = [
+          { icon: IC.download, label: "Download " + (p.mediaType === "video" ? "video" : "photo"), fn: function () { downloadMedia(p); } },
+          { icon: IC.copy, label: "Copy caption", fn: function () { copyCaption(p); } }
+        ];
+        if (postAuthor(p).username === state.user.username) {
+          rows.push({ icon: IC.trash, label: "Delete post", danger: true, fn: function () { deletePost(id); } });
+        }
+        sheetRows(rows);
+      }
+      function deletePost(id) {
+        var p = findPost(id);
+        state.posts = state.posts.filter(function (x) { return String(x.id) !== String(id); });
+        if (p && sb.connected && p.shared) sbDeleteShared(p);
+        closeSheet("detailScrim");
+        refreshPostSurfaces();
+        toast("Post deleted");
+      }
+
+      /* ---------- create ---------- */
+      var pendingFile = null, pendingType = "post";
+      function openCreate(type) {
+        pendingType = type || "post";
+        pendingFile = null;
+        $("#previewMedia").style.display = "none";
+        $("#previewMedia").innerHTML = "";
+        $("#pickZone").style.display = "block";
+        $("#captionInput").value = "";
+        updateTypeSeg();
+        updateShareBtn();
+        openSheet("createScrim");
+      }
+      function updateTypeSeg() {
+        $$("#typeSeg button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-type") === pendingType); });
+        $("#captionField").style.display = pendingType === "story" ? "none" : "block";
+      }
+      function updateShareBtn() {
+        var btn = $("#shareBtn");
+        var ok = !!pendingFile;
+        btn.disabled = !ok;
+        btn.style.opacity = ok ? "1" : ".45";
+        btn.textContent = pendingType === "story" ? "Add to story" : "Share";
+      }
+      function setPendingFile(file) {
+        if (!file) return;
+        if (pendingFile && pendingFile.url) URL.revokeObjectURL(pendingFile.url);
+        var url = URL.createObjectURL(file);
+        var mediaType = file.type.indexOf("video") === 0 ? "video" : "image";
+        pendingFile = { url: url, mediaType: mediaType, file: file };
+        var pm = $("#previewMedia");
+        pm.innerHTML = mediaType === "video"
+          ? '<video src="' + url + '" controls playsinline></video>'
+          : '<img src="' + url + '" alt="Selected photo preview" />';
+        pm.style.display = "block";
+        $("#pickZone").style.display = "none";
+        if (mediaType === "video" && pendingType === "post") { pendingType = "reel"; updateTypeSeg(); }
+        updateShareBtn();
+      }
+      function doShare() {
+        if (!pendingFile) return;
+        var caption = $("#captionInput").value.trim();
+        if (pendingType === "story") {
+          var stFile = pendingFile.file, stType = pendingFile.mediaType, stUrl = pendingFile.url;
+          var stAuthor = { username: state.user.username, name: state.user.name, avatar: null };
+          if (sb.connected && stFile) {
+            var shBtn = $("#shareBtn");
+            shBtn.disabled = true; shBtn.style.opacity = ".55"; shBtn.textContent = "Sharing story with everyone…";
+            sbPublishStory(stFile, stType, stAuthor).then(function (story) {
+              URL.revokeObjectURL(stUrl);
+              pendingFile = null;
+              state.stories.unshift(story);
+              renderStories();
+              notify("Your story was shared with everyone.");
+              closeSheet("createScrim");
+              toast("Story shared with everyone");
+              switchView("home");
+            }).catch(function () {
+              shBtn.disabled = false; shBtn.style.opacity = "1"; shBtn.textContent = "Add to story";
+              toast("Could not reach the shared feed — check the connection and try again");
+            });
+            return;
+          }
+          state.stories.unshift({ id: nextId(), mediaType: pendingFile.mediaType, url: pendingFile.url, ts: Date.now() });
+          pendingFile = null;
+          renderStories();
+          notify("You added a new story.");
+          closeSheet("createScrim");
+          toast("Story added");
+          switchView("home");
+          return;
+        }
+        var kind = pendingType === "reel" ? "reel" : "post";
+        var author = { username: state.user.username, name: state.user.name, avatar: null };
+        if (sb.connected && pendingFile.file) {
+          var sendFile = pendingFile.file, sendType = pendingFile.mediaType, sendUrl = pendingFile.url;
+          var sBtn = $("#shareBtn");
+          sBtn.disabled = true; sBtn.style.opacity = ".55"; sBtn.textContent = "Sharing with everyone…";
+          sbPublishPost(sendFile, sendType, kind, caption, author).then(function (post) {
+            URL.revokeObjectURL(sendUrl);
+            pendingFile = null;
+            state.posts.unshift(post);
+            refreshPostSurfaces();
+            notify(kind === "reel" ? "Your reel was published to the shared feed." : "Your post was published to the shared feed.");
+            closeSheet("createScrim");
+            toast(kind === "reel" ? "Reel shared with everyone" : "Post shared with everyone");
+            switchView(kind === "reel" ? "reels" : "home");
+          }).catch(function () {
+            sBtn.disabled = false; sBtn.style.opacity = "1"; sBtn.textContent = "Share";
+            toast("Could not reach the shared feed — check the connection and try again");
+          });
+          return;
+        }
+        var post = {
+          id: nextId(),
+          kind: kind,
+          mediaType: pendingFile.mediaType,
+          url: pendingFile.url,
+          caption: caption,
+          liked: false, likeCount: 0, saved: false,
+          comments: [], ts: Date.now(),
+          author: author, shared: false
+        };
+        pendingFile = null;
+        state.posts.unshift(post);
+        refreshPostSurfaces();
+        notify(post.kind === "reel" ? "Your reel was published." : "Your post was published.");
+        closeSheet("createScrim");
+        toast(post.kind === "reel" ? "Reel published" : "Post published");
+        switchView(post.kind === "reel" ? "reels" : "home");
+      }
+
+      /* ---------- download the app file ---------- */
+      function downloadAppFile() {
+        var clone = document.documentElement.cloneNode(true);
+        var html = "<!DOCTYPE html>\n" + clone.outerHTML;
+        var blob = new Blob([html], { type: "text/html" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "ireel.html";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        toast("ireel.html downloaded — check your Downloads folder");
+      }
+
+      /* ---------- shared feed engine ---------- */
+      function sbBase() { return sb.url.replace(/\/+$/, ""); }
+      /* Shared rows come from a public table that anyone can write to, so
+         every value is validated before it is ever interpolated into HTML:
+         only media served by this project's own storage is accepted, and
+         nothing containing quotes, angle brackets or whitespace. */
+      function cleanSharedUrl(u) {
+        var prefix = sbBase() + "/storage/v1/object/public/media/";
+        return (typeof u === "string" && u.indexOf(prefix) === 0 && !/["'<>\s]/.test(u)) ? u : null;
+      }
+      function sbApi(path, opts) {
+        opts = opts || {};
+        var headers = { apikey: sb.key, Authorization: "Bearer " + (opts.token || sb.key), "Content-Type": "application/json" };
+        if (opts.headers) { for (var k in opts.headers) headers[k] = opts.headers[k]; }
+        return fetch(sbBase() + path, { method: opts.method || "GET", headers: headers, body: opts.body || undefined })
+          .then(function (r) {
+            if (!r.ok) throw new Error("sb " + r.status);
+            if (r.status === 204) return null;
+            return r.text().then(function (t) { return t ? JSON.parse(t) : null; });
+          });
+      }
+      function sbKeyRole(key) {
+        try {
+          var part = String(key).split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+          return JSON.parse(atob(part)).role || "";
+        } catch (e) { return ""; }
+      }
+      function loadSharedFeed(manual) {
+        if (!sb.connected) return Promise.resolve(false);
+        var isRefresh = sb.lastLoad > 0;
+        var prevMine = {};
+        state.posts.forEach(function (p) {
+          if (postAuthor(p).username === state.user.username) {
+            prevMine[p.id] = { likes: p.likeCount, comments: p.comments.length };
+          }
+        });
+        return Promise.all([
+          sbApi("/rest/v1/posts?select=*&order=created_at.desc&limit=100"),
+          sbApi("/rest/v1/comments?select=*&order=created_at.asc&limit=500"),
+          sbApi("/rest/v1/stories?select=*&order=created_at.desc&limit=100").catch(function () { return null; }),
+          sbApi("/rest/v1/profiles?select=*&order=created_at.asc&limit=200").catch(function () { return null; }),
+          sbApi("/rest/v1/follows?select=*&limit=1000").catch(function () { return null; })
+        ]).then(function (res) {
+          var rows = res[0] || [], cmts = res[1] || [], storyRows = res[2];
+          var profileRows = res[3], followRows = res[4];
+          rows = rows.filter(function (r) {
+            return /^[A-Za-z0-9_-]+$/.test(String(r.id)) && !!cleanSharedUrl(r.media_url);
+          });
+          var byPost = {};
+          cmts.forEach(function (c) {
+            (byPost[c.post_id] = byPost[c.post_id] || []).push({ username: c.username, text: c.text });
+          });
+          state.posts = rows.map(function (r) {
+            return {
+              id: String(r.id), kind: r.kind, mediaType: r.media_type, url: r.media_url,
+              caption: r.caption || "", liked: !!myLikes[String(r.id)], likeCount: r.like_count || 0,
+              saved: !!mySaves[String(r.id)], comments: byPost[r.id] || [],
+              ts: Date.parse(r.created_at) || Date.now(), shared: true,
+              author: { username: r.username, name: r.display_name || r.username, avatar: cleanSharedUrl(r.avatar_url) }
+            };
+          });
+          /* shared stories from everyone (last 24h), merged with this device's own local stories — nothing is removed */
+          if (storyRows) {
+            var cutoff = Date.now() - 24 * 60 * 60 * 1000;
+            var sharedStories = storyRows.filter(function (r) {
+              return /^[A-Za-z0-9_-]+$/.test(String(r.id)) && !!cleanSharedUrl(r.media_url) && (Date.parse(r.created_at) || 0) > cutoff;
+            }).map(function (r) {
+              return {
+                id: String(r.id), mediaType: r.media_type, url: r.media_url,
+                ts: Date.parse(r.created_at) || Date.now(), shared: true,
+                author: { username: r.username, name: r.display_name || r.username, avatar: cleanSharedUrl(r.avatar_url) }
+              };
+            });
+            var localOnly = state.stories.filter(function (s) { return !s.shared; });
+            state.stories = localOnly.concat(sharedStories).sort(function (a, b) { return b.ts - a.ts; });
+          }
+          /* tell me when people interact with my posts */
+          if (isRefresh) {
+            state.posts.forEach(function (p) {
+              var prev = prevMine[p.id];
+              if (!prev) return;
+              if (p.likeCount > prev.likes) {
+                notify("Your post has " + p.likeCount + (p.likeCount === 1 ? " like" : " likes") + " in the shared feed.");
+              }
+              if (p.comments.length > prev.comments) {
+                var nc = p.comments[p.comments.length - 1];
+                if (nc && nc.username !== state.user.username) notify(nc.username + " commented on your post: “" + nc.text + "”");
+              }
+            });
+          }
+          /* shared account profiles: everyone's own profile joins the people directory (nothing is removed) */
+          if (profileRows) {
+            profileRows.forEach(function (r) {
+              if (!r.username) return;
+              registerPerson(r.username, r.display_name || r.username, cleanSharedUrl(r.avatar_url), r.bio || "");
+              var local = accounts[r.username];
+              if (local && local.source !== "admin") { if (r.bio) local.bio = r.bio; if (r.display_name) local.name = r.display_name; }
+            });
+          }
+          /* shared follows: real follower/following counts for every account, merged with this session's follows */
+          if (followRows) {
+            var fc = {}, gc = {}, pairs = {};
+            followRows.forEach(function (r) {
+              if (!r.follower || !r.following) return;
+              fc[r.following] = (fc[r.following] || 0) + 1;
+              gc[r.follower] = (gc[r.follower] || 0) + 1;
+              pairs[r.follower + ">" + r.following] = true;
+              registerPerson(r.follower, r.follower, null);
+              registerPerson(r.following, r.following, null);
+            });
+            Object.keys(follows).forEach(function (u) {
+              if (!pairs[state.user.username + ">" + u]) { fc[u] = (fc[u] || 0) + 1; gc[state.user.username] = (gc[state.user.username] || 0) + 1; }
+            });
+            Object.keys(pairs).forEach(function (k) {
+              var parts = k.split(">");
+              if (parts[0] === state.user.username) follows[parts[1]] = true;
+            });
+            followersOf = fc; followingOf = gc;
+          }
+          sb.lastLoad = Date.now();
+          refreshPostSurfaces();
+          renderStories();
+          renderSharedStatus();
+          loadMessages(false);
+          if (manual) toast("Shared feed refreshed — " + state.posts.length + (state.posts.length === 1 ? " post" : " posts") + " from everyone");
+          return true;
+        }).catch(function () {
+          if (manual) toast("Could not refresh the shared feed");
+          return false;
+        });
+      }
+      function sbPublishPost(file, mediaType, kind, caption, author) {
+        var id = "p" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+        var rawExt = (file.name && file.name.split(".").pop()) || (mediaType === "video" ? "mp4" : "jpg");
+        var ext = String(rawExt).replace(/[^a-z0-9]/gi, "").toLowerCase() || (mediaType === "video" ? "mp4" : "jpg");
+        var path = "posts/" + id + "." + ext;
+        return fetch(sbBase() + "/storage/v1/object/media/" + path, {
+          method: "POST",
+          headers: { apikey: sb.key, Authorization: "Bearer " + sb.key, "Content-Type": file.type || "application/octet-stream", "x-upsert": "true" },
+          body: file
+        }).then(function (r) {
+          if (!r.ok) throw new Error("upload " + r.status);
+          var url = sbBase() + "/storage/v1/object/public/media/" + path;
+          var row = {
+            id: id, kind: kind, media_type: mediaType, media_url: url, caption: caption,
+            username: author.username, display_name: author.name, avatar_url: "", like_count: 0
+          };
+          return sbApi("/rest/v1/posts", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) })
+            .then(function () {
+              return {
+                id: id, kind: kind, mediaType: mediaType, url: url, caption: caption,
+                liked: false, likeCount: 0, saved: false, comments: [], ts: Date.now(),
+                shared: true, author: author
+              };
+            });
+        });
+      }
+      function sbPublishStory(file, mediaType, author) {
+        var id = "s" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+        var rawExt = (file.name && file.name.split(".").pop()) || (mediaType === "video" ? "mp4" : "jpg");
+        var ext = String(rawExt).replace(/[^a-z0-9]/gi, "").toLowerCase() || (mediaType === "video" ? "mp4" : "jpg");
+        var path = "stories/" + id + "." + ext;
+        return fetch(sbBase() + "/storage/v1/object/media/" + path, {
+          method: "POST",
+          headers: { apikey: sb.key, Authorization: "Bearer " + sb.key, "Content-Type": file.type || "application/octet-stream", "x-upsert": "true" },
+          body: file
+        }).then(function (r) {
+          if (!r.ok) throw new Error("upload " + r.status);
+          var url = sbBase() + "/storage/v1/object/public/media/" + path;
+          var row = {
+            id: id, media_type: mediaType, media_url: url,
+            username: author.username, display_name: author.name, avatar_url: ""
+          };
+          return sbApi("/rest/v1/stories", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) })
+            .then(function () {
+              return { id: id, mediaType: mediaType, url: url, ts: Date.now(), shared: true, author: author };
+            });
+        });
+      }
+      function sbInsertComment(post, cmt) {
+        var row = {
+          id: "c" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36),
+          post_id: post.id, username: cmt.username, text: cmt.text
+        };
+        sbApi("/rest/v1/comments", { method: "POST", body: JSON.stringify(row) })
+          .catch(function () { toast("Comment posted here, but could not sync to the shared feed"); });
+      }
+      function sbPatchLike(post) {
+        sbApi("/rest/v1/posts?id=eq." + encodeURIComponent(post.id), {
+          method: "PATCH", headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({ like_count: post.likeCount })
+        }).catch(function () {});
+      }
+      function sbDeleteShared(post) {
+        sbApi("/rest/v1/posts?id=eq." + encodeURIComponent(post.id), { method: "DELETE" }).catch(function () {});
+        var marker = "/object/public/media/";
+        var idx = post.url.indexOf(marker);
+        if (idx !== -1) {
+          fetch(sbBase() + "/storage/v1/object/media/" + post.url.slice(idx + marker.length), {
+            method: "DELETE", headers: { apikey: sb.key, Authorization: "Bearer " + sb.key }
+          }).catch(function () {});
+        }
+      }
+      function connectShared(url, key, quiet) {
+        url = (url || "").trim().replace(/\/+$/, "");
+        key = (key || "").trim();
+        if (url.indexOf("https://") !== 0 || key.length < 20) {
+          if (!quiet) toast("Paste the full Project URL and the anon public key");
+          return;
+        }
+        if (sbKeyRole(key) === "service_role") {
+          if (!quiet) toast("That is the secret service_role key — use the anon public key instead");
+          return;
+        }
+        sb.url = url; sb.key = key;
+        if (!quiet) toast("Connecting to the shared feed…");
+        sbApi("/rest/v1/posts?select=id&limit=1").then(function () {
+          sb.connected = true;
+          renderSharedStatus();
+          return loadSharedFeed(false);
+        }).then(function (ok) {
+          if (ok) {
+            closeSheet("sharedScrim");
+            toast("Shared feed connected — everyone's posts are now in one feed");
+          }
+        }).catch(function () {
+          sb.connected = false;
+          renderSharedStatus();
+          if (!quiet) toast("Could not connect — check the URL and key, and that the SQL (step 2) has been run");
+        });
+      }
+      function disconnectShared() {
+        sb.connected = false;
+        renderSharedStatus();
+        toast("Shared feed disconnected");
+      }
+      function renderSharedStatus() {
+        var st = $("#sharedStatus");
+        if (st) st.textContent = sb.connected
+          ? "ON — connected to " + sb.url.replace("https://", "") + ". Everyone on ireel with this backend sees the same feed: all posts, reels, stories, likes, comments, account profiles, follows and direct messages sync for everyone."
+          : "OFF — right now ireel shows only this device's posts. Connect the free Supabase backend and everyone's posts appear in one shared feed.";
+        var setupBtn = $("#sharedSetupBtn");
+        if (setupBtn) setupBtn.textContent = sb.connected ? "Shared feed settings" : "Set up shared feed";
+        var refBtn = $("#sharedRefreshBtn");
+        if (refBtn) refBtn.hidden = !sb.connected;
+        var banner = $("#feedBanner");
+        if (banner) {
+          banner.innerHTML = sb.connected
+            ? '<div class="banner on"><span>Shared feed is ON — posts, reels, stories and messages from everyone.</span><button data-banner="refresh">Refresh</button></div>'
+            : '<div class="banner"><span>Only posts from this device are showing.</span><button data-banner="setup">Turn on shared feed</button></div>';
+        }
+      }
+      function openSharedSheet() {
+        $("#sbName").value = state.user.name;
+        $("#sbUsername").value = state.user.username;
+        if (sb.url) $("#sbUrl").value = sb.url;
+        if (sb.key) $("#sbKey").value = sb.key;
+        $("#sbDisconnect").style.display = sb.connected ? "" : "none";
+        $("#sbConnect").textContent = sb.connected ? "Reconnect shared feed" : "Connect shared feed";
+        openSheet("sharedScrim");
+      }
+
+      /* ---------- accounts engine ---------- */
+      function sbAuthRequest(path, payload) {
+        return fetch(sbBase() + path, {
+          method: "POST",
+          headers: { apikey: sb.key, "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }).then(function (r) {
+          return r.text().then(function (t) {
+            var data = null;
+            try { data = t ? JSON.parse(t) : null; } catch (e) {}
+            if (!r.ok) {
+              var msg = (data && (data.msg || data.message || data.error_description || data.error)) || ("auth " + r.status);
+              throw new Error(msg);
+            }
+            return data;
+          });
+        });
+      }
+      function sbUpsertProfile(acct) {
+        if (!sb.url || !sb.key) return Promise.resolve(false);
+        var row = {
+          id: "u_" + acct.username, username: acct.username, display_name: acct.name,
+          bio: acct.bio || "", avatar_url: ""
+        };
+        return sbApi("/rest/v1/profiles?on_conflict=id", {
+          method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(row)
+        }).then(function () { return true; }).catch(function () { return false; });
+      }
+      function applyAccount(acct) {
+        state.user.name = acct.name || acct.username;
+        state.user.username = acct.username;
+        state.user.bio = acct.bio || "";
+        state.user.email = acct.email || "";
+        state.user.avatar = acct.avatar || null;
+        state.guest = acct.username !== "satyamkumar";
+        syncMeToPeople();
+        renderStories(); renderFeed(); renderExplore(); renderReels(); renderNotifications(); renderProfile(); renderConversations();
+      }
+      function switchToAccount(username) {
+        var acct = accounts[username];
+        if (!acct) return;
+        follows = {};
+        followingOf[username] = 0;
+        applyAccount(acct);
+        if (sb.connected) loadSharedFeed(false);
+        toast("Signed in as @" + username);
+      }
+      function cleanUsername(raw) {
+        return String(raw || "").trim().toLowerCase().replace(/[^a-z0-9._]/g, "");
+      }
+      function doSignup() {
+        var name = $("#suName").value.trim();
+        var username = cleanUsername($("#suUsername").value);
+        var email = $("#suEmail").value.trim();
+        var pw = $("#suPassword").value;
+        var bio = $("#suBio").value.trim();
+        if (!name || !username || !email || !pw) { toast("Name, username, email aur password — sab bharo"); return; }
+        if (username.length < 3) { toast("Username kam se kam 3 characters ka rakho"); return; }
+        if (pw.length < 6) { toast("Password kam se kam 6 characters ka rakho"); return; }
+        if (accounts[username]) { toast("Ye username pehle se liya hua hai — doosra chuno"); return; }
+        var btn = $("#signupSubmitBtn");
+        btn.disabled = true; btn.style.opacity = ".55"; btn.textContent = "Creating your account…";
+        function finish(acct, note) {
+          accounts[acct.username] = acct;
+          registerPerson(acct.username, acct.name, null, acct.bio, acct.email);
+          btn.disabled = false; btn.style.opacity = "1"; btn.textContent = "Create my account";
+          closeSheet("authScrim");
+          switchToAccount(acct.username);
+          notify("Welcome to ireel, " + acct.name + "! Your account @" + acct.username + " is ready — this profile, and everything you post, is yours.");
+          toast(note || ("Account ban gaya — welcome, @" + acct.username));
+          switchView("profile");
+        }
+        if (sb.url && sb.key) {
+          sbAuthRequest("/auth/v1/signup", { email: email, password: pw, data: { username: username, name: name } })
+            .then(function (data) {
+              if (data && data.access_token) authSession = { access_token: data.access_token, email: email };
+              var acct = { username: username, name: name, email: email, bio: bio, avatar: null, passHash: passHash(pw), source: "supabase" };
+              sb.connected = true;
+              sbUpsertProfile(acct).then(function () {
+                finish(acct, data && data.access_token ? "Account ban gaya — welcome, @" + username : "Account ban gaya! Agar login par dikkat aaye to email me aaya confirmation link pehle tap karna.");
+              });
+            })
+            .catch(function (err) {
+              btn.disabled = false; btn.style.opacity = "1"; btn.textContent = "Create my account";
+              toast("Signup failed: " + (err && err.message ? err.message : "backend unreachable") + " — device par account bana raha hoon");
+              var acct = { username: username, name: name, email: email, bio: bio, avatar: null, passHash: passHash(pw), source: "device" };
+              finish(acct, "Account is device par ban gaya, @" + username);
+            });
+        } else {
+          finish({ username: username, name: name, email: email, bio: bio, avatar: null, passHash: passHash(pw), source: "device" }, "Account ban gaya — welcome, @" + username);
+        }
+      }
+      function doLogin() {
+        var email = $("#loginEmail").value.trim();
+        var pw = $("#loginPassword").value;
+        if (!email || !pw) { toast("Email aur password bharo"); return; }
+        var btn = $("#loginBtn");
+        btn.disabled = true; btn.style.opacity = ".55"; btn.textContent = "Logging in…";
+        function fail(msg) {
+          btn.disabled = false; btn.style.opacity = "1"; btn.textContent = "Log in";
+          toast(msg);
+        }
+        function localLogin() {
+          var found = null;
+          Object.keys(accounts).forEach(function (u) { if (accounts[u].email === email) found = accounts[u]; });
+          if (found && found.passHash && found.passHash === passHash(pw)) {
+            closeSheet("authScrim");
+            switchToAccount(found.username);
+            return true;
+          }
+          return false;
+        }
+        if (sb.url && sb.key) {
+          sbAuthRequest("/auth/v1/token?grant_type=password", { email: email, password: pw })
+            .then(function (data) {
+              btn.disabled = false; btn.style.opacity = "1"; btn.textContent = "Log in";
+              authSession = { access_token: data.access_token, email: email };
+              var meta = (data.user && data.user.user_metadata) || {};
+              var username = cleanUsername(meta.username) || cleanUsername(email.split("@")[0]);
+              var acct = accounts[username] || {
+                username: username, name: meta.name || username, email: email,
+                bio: "", avatar: null, passHash: passHash(pw), source: "supabase"
+              };
+              acct.passHash = passHash(pw); acct.source = "supabase"; acct.email = email;
+              accounts[username] = acct;
+              sb.connected = true;
+              sbUpsertProfile(acct);
+              closeSheet("authScrim");
+              switchToAccount(username);
+            })
+            .catch(function (err) {
+              if (!localLogin()) fail("Login failed: " + (err && err.message ? err.message : "check email/password"));
+              else { btn.disabled = false; btn.style.opacity = "1"; btn.textContent = "Log in"; }
+            });
+        } else if (!localLogin()) {
+          fail("Is email se koi account is device par nahi mila — pehle Sign up karo");
+        }
+      }
+      function doLogout() {
+        authSession = null;
+        var home = accounts["satyamkumar"];
+        follows = {};
+        applyAccount(home);
+        if (sb.connected) loadSharedFeed(false);
+        toast("Logged out — admin account par wapas aa gaye");
+        switchView("home");
+      }
+      var authTab = "login";
+      function setAuthTab(tab) {
+        authTab = tab;
+        $$("#authSeg button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-auth-tab") === tab); });
+        $("#authLoginPane").hidden = tab !== "login";
+        $("#authSignupPane").hidden = tab !== "signup";
+        $("#authSwitchPane").hidden = tab !== "switch";
+        if (tab === "switch") renderSwitchList();
+      }
+      function openAuth(tab) { setAuthTab(tab || "login"); openSheet("authScrim"); }
+      function renderSwitchList() {
+        var list = $("#switchList");
+        var names = Object.keys(accounts);
+        list.innerHTML = names.map(function (u) {
+          var a = accounts[u];
+          var cur = u === state.user.username;
+          return '<button class="switch-row" data-switch="' + esc(u) + '">' + authorAvatarHTML(a, 42) +
+            '<span class="who"><span class="un">' + esc(u) + '</span><br /><span class="nm">' + esc(a.name || "") + (a.email ? " · " + esc(a.email) : "") + '</span></span>' +
+            (cur ? '<span class="tick">✓ Current</span>' : '<span class="chev" style="color:var(--text-2);">›</span>') + "</button>";
+        }).join("") + '<button class="btn ghost block" id="switchNewBtn" style="margin-top:10px;">+ Create a new account</button>';
+        $$("[data-switch]", list).forEach(function (el) {
+          el.addEventListener("click", function () {
+            var u = el.getAttribute("data-switch");
+            closeSheet("authScrim");
+            if (u !== state.user.username) switchToAccount(u);
+          });
+        });
+        var nb = $("#switchNewBtn");
+        if (nb) nb.addEventListener("click", function () { setAuthTab("signup"); });
+      }
+
+      /* ---------- user profile view ---------- */
+      function openUserProfile(username) {
+        if (!username) return;
+        if (username === state.user.username) { switchView("profile"); return; }
+        registerPerson(username, username, null);
+        currentProfileUser = username;
+        renderUserProfile();
+        switchView("user");
+      }
+      function renderUserProfile() {
+        var u = currentProfileUser; if (!u) return;
+        var p = personOf(u);
+        var theirPosts = state.posts.filter(function (x) { return postAuthor(x).username === u; });
+        var isFollowing = !!follows[u];
+        $("#userProfileBody").innerHTML =
+          '<div class="up-head"><span class="up-ring">' + authorAvatarHTML(p, 84) + "</span>" +
+          '<div class="un">@' + esc(u) + "</div>" +
+          '<div class="nm">' + esc(p.name || "") + "</div>" +
+          (p.bio ? '<div class="bio">' + esc(p.bio) + "</div>" : "") +
+          '<div class="up-stats">' +
+            "<div><div class=\"num\">" + theirPosts.length + '</div><div class="lab">posts</div></div>' +
+            '<div><div class="num" style="color:var(--c-pink);">' + (followersOf[u] || 0) + '</div><div class="lab">followers</div></div>' +
+            '<div><div class="num" style="color:var(--c-blue);">' + (followingOf[u] || 0) + '</div><div class="lab">following</div></div>' +
+          "</div></div>" +
+          '<div class="up-btns">' +
+            '<button class="btn' + (isFollowing ? " ghost" : "") + '" id="upFollowBtn">' + (isFollowing ? "Following" : "Follow") + "</button>" +
+            '<button class="btn ghost" id="upMsgBtn">Message</button>' +
+          "</div>";
+        var grid = $("#userGrid");
+        grid.innerHTML = theirPosts.map(function (x) {
+          var inner = x.mediaType === "video"
+            ? '<video src="' + x.url + '" muted playsinline preload="metadata"></video>'
+            : '<img src="' + x.url + '" alt="' + esc(x.caption || "Post by " + u) + '" />';
+          return '<div class="cell" data-ucell="' + x.id + '">' + inner + (x.kind === "reel" ? '<span class="reel-tag">' + IC.reelTag + "</span>" : "") + "</div>";
+        }).join("");
+        $("#userGridMsg").textContent = theirPosts.length ? "" : "@" + u + " has not posted yet.";
+        var fb = $("#upFollowBtn");
+        if (fb) fb.addEventListener("click", function () { toggleFollow(u); });
+        var mb = $("#upMsgBtn");
+        if (mb) mb.addEventListener("click", function () { openChat(u); });
+        $$("[data-ucell]", grid).forEach(function (el) {
+          el.addEventListener("click", function () { openDetail(el.getAttribute("data-ucell")); });
+        });
+      }
+
+      /* ---------- direct messages (per-user) ---------- */
+      function threadWith(username) {
+        var me = state.user.username;
+        return dmMessages.filter(function (m) {
+          return (m.sender === me && m.recipient === username) || (m.sender === username && m.recipient === me);
+        }).sort(function (a, b) { return a.ts - b.ts; });
+      }
+      function unreadCount(username) {
+        var me = state.user.username;
+        var since = dmReadAt[me + ">" + username] || 0;
+        return threadWith(username).filter(function (m) { return m.sender === username && m.ts > since; }).length;
+      }
+      function totalUnread() {
+        var total = 0;
+        Object.keys(people).forEach(function (u) { if (u !== state.user.username) total += unreadCount(u); });
+        return total;
+      }
+      function renderMsgBadge() {
+        var n = totalUnread();
+        var b = $("#msgBadge");
+        if (!b) return;
+        b.hidden = !(n > 0 && currentView !== "messages" && currentView !== "chat");
+        b.textContent = n > 9 ? "9+" : String(n);
+      }
+      function convoPartners() {
+        var seen = {}, order = [];
+        dmMessages.slice().sort(function (a, b) { return b.ts - a.ts; }).forEach(function (m) {
+          var other = m.sender === state.user.username ? m.recipient : (m.recipient === state.user.username ? m.sender : null);
+          if (other && !seen[other]) { seen[other] = true; order.push(other); }
+        });
+        return order;
+      }
+      function renderConversations() {
+        var partners = convoPartners();
+        var list = $("#convoList");
+        $("#convoEmpty").style.display = partners.length ? "none" : "block";
+        list.innerHTML = partners.map(function (u) {
+          var p = personOf(u);
+          var th = threadWith(u);
+          var last = th[th.length - 1];
+          var un = unreadCount(u);
+          return '<button class="convo-row" data-convo="' + esc(u) + '">' + authorAvatarHTML(p, 50) +
+            '<span class="who"><span class="un">' + esc(u) + (un ? '<span class="unread-dot">' + un + "</span>" : "") + '</span><br /><span class="last">' +
+            (last ? esc((last.sender === state.user.username ? "You: " : "") + last.text) : "") + '</span></span>' +
+            '<span class="when">' + (last ? timeAgo(last.ts) : "") + "</span></button>";
+        }).join("");
+        $$("[data-convo]", list).forEach(function (el) {
+          el.addEventListener("click", function () { openChat(el.getAttribute("data-convo")); });
+        });
+        renderMsgBadge();
+      }
+      function openChat(username) {
+        if (!username || username === state.user.username) return;
+        registerPerson(username, username, null);
+        currentChatUser = username;
+        dmReadAt[state.user.username + ">" + username] = Date.now();
+        renderChat();
+        switchView("chat");
+        renderConversations();
+        if (sb.connected) loadMessages(false);
+        setTimeout(function () { var i = $("#chatInput"); if (i) i.focus(); }, 60);
+      }
+      function renderChat() {
+        var u = currentChatUser; if (!u) return;
+        var p = personOf(u);
+        $("#chatAvatar").innerHTML = authorAvatarHTML(p, 36);
+        $("#chatUname").textContent = u;
+        $("#chatName").textContent = p.name || "";
+        var th = threadWith(u);
+        var body = $("#chatBody");
+        body.innerHTML = th.length ? th.map(function (m) {
+          var mine = m.sender === state.user.username;
+          return '<div class="msg ' + (mine ? "me" : "them") + '">' + esc(m.text) + '<span class="mt">' + timeAgo(m.ts) + "</span></div>";
+        }).join("") : '<div class="grid-msg">Say hello to @' + esc(u) + " — this thread is readable only by your two accounts.</div>";
+        body.scrollTop = body.scrollHeight;
+      }
+      function sendChatMessage() {
+        var u = currentChatUser; if (!u) return;
+        var inp = $("#chatInput");
+        var text = inp.value.trim();
+        if (!text) return;
+        inp.value = "";
+        var msg = {
+          id: "m" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36),
+          sender: state.user.username, recipient: u, text: text, ts: Date.now(), shared: false
+        };
+        dmMessages.push(msg);
+        renderChat();
+        renderConversations();
+        if (sb.connected && authSession && authSession.access_token) {
+          sbApi("/rest/v1/messages", { method: "POST", token: authSession.access_token, headers: { Prefer: "return=minimal" }, body: JSON.stringify({
+            id: msg.id, sender: msg.sender, recipient: msg.recipient, text: msg.text
+          })}).then(function () { msg.shared = true; }).catch(function () {
+            toast("Message is chat me saved hai — private shared sync ke liye SQL me messages table banana baki hai");
+          });
+        }
+      }
+      function loadMessages(manual) {
+        if (!sb.connected) return Promise.resolve(false);
+        if (!authSession || !authSession.access_token) return Promise.resolve(false);
+        var me = encodeURIComponent(state.user.username);
+        return sbApi("/rest/v1/messages?select=*&or=(sender.eq." + me + ",recipient.eq." + me + ")&order=created_at.asc&limit=500", { token: authSession.access_token })
+          .then(function (rows) {
+            var have = {};
+            dmMessages.forEach(function (m) { have[m.id] = true; });
+            (rows || []).forEach(function (r) {
+              if (!/^[A-Za-z0-9_-]+$/.test(String(r.id)) || have[r.id]) return;
+              dmMessages.push({ id: String(r.id), sender: r.sender, recipient: r.recipient, text: r.text, ts: Date.parse(r.created_at) || Date.now(), shared: true });
+              registerPerson(r.sender, r.sender, null);
+              registerPerson(r.recipient, r.recipient, null);
+            });
+            dmMessages.sort(function (a, b) { return a.ts - b.ts; });
+            renderConversations();
+            if (currentView === "chat") renderChat();
+            if (manual) toast("Messages refreshed");
+            return true;
+          }).catch(function () { return false; });
+      }
+      function openPeoplePicker() {
+        $("#peopleSearch").value = "";
+        renderPeopleList("");
+        openSheet("peopleScrim");
+      }
+      function renderPeopleList(q) {
+        q = (q || "").trim().toLowerCase();
+        var all = Object.keys(people).map(function (k) { return people[k]; })
+          .filter(function (p) { return p.username !== state.user.username; })
+          .filter(function (p) { return !q || p.username.toLowerCase().indexOf(q) !== -1 || (p.name || "").toLowerCase().indexOf(q) !== -1; })
+          .sort(function (a, b) { return a.username.localeCompare(b.username); });
+        var list = $("#peopleList");
+        list.innerHTML = all.length ? all.map(function (p) {
+          return '<button class="person-row" data-chat-with="' + esc(p.username) + '">' + authorAvatarHTML(p, 44) +
+            '<span class="who"><span class="un">' + esc(p.username) + '</span><br /><span class="nm">' + esc(p.name || "") + '</span></span><span class="chev">›</span></button>';
+        }).join("") : '<div class="grid-msg">No other accounts found yet. Jab doosre users signup karke posts karenge, woh yahan dikhenge — ya Explore se kisi ki profile kholo aur Message dabao.</div>';
+        $$("[data-chat-with]", list).forEach(function (el) {
+          el.addEventListener("click", function () {
+            closeSheet("peopleScrim");
+            openChat(el.getAttribute("data-chat-with"));
+          });
+        });
+      }
+
+      /* ---------- wiring ---------- */
+      function init() {
+        syncMeToPeople();
+        renderStories();
+        renderFeed();
+        renderExplore();
+        renderReels();
+        renderNotifications();
+        renderProfile();
+        renderConversations();
+
+        $$("#bottomNav button").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var nav = b.getAttribute("data-nav");
+            if (nav === "create") openCreate("post");
+            else switchView(nav);
+          });
+        });
+        $("#headCreateBtn").addEventListener("click", function () { openCreate("post"); });
+        $("#headNotifBtn").addEventListener("click", function () { switchView("notifications"); });
+        $("#headMsgBtn").addEventListener("click", function () { switchView("messages"); });
+        $$("[data-act]").forEach(function (el) {
+          if (el.closest("#feed") || el.closest("#view-reels") || el.closest("#view-messages")) return;
+        });
+        var reelBtn = $('#reelsEmpty [data-act="create-reel"]');
+        if (reelBtn) reelBtn.addEventListener("click", function () { openCreate("reel"); });
+        var msgBtn = $('#view-messages [data-act="create-post"]');
+        if (msgBtn) msgBtn.addEventListener("click", function () { openCreate("post"); });
+
+        $("#searchInput").addEventListener("input", function (e) {
+          state.search = e.target.value;
+          renderExplore();
+        });
+
+        /* create sheet */
+        $("#pickZone").addEventListener("click", function () { $("#mediaInput").click(); });
+        $("#previewMedia").addEventListener("click", function () { $("#mediaInput").click(); });
+        $("#mediaInput").addEventListener("change", function (e) {
+          setPendingFile(e.target.files && e.target.files[0]);
+          e.target.value = "";
+        });
+        $$("#typeSeg button").forEach(function (b) {
+          b.addEventListener("click", function () { pendingType = b.getAttribute("data-type"); updateTypeSeg(); updateShareBtn(); });
+        });
+        $("#shareBtn").addEventListener("click", doShare);
+        $("#createCancel").addEventListener("click", function () { closeSheet("createScrim"); });
+
+        /* story input */
+        $("#storyInput").addEventListener("change", function (e) {
+          var f = e.target.files && e.target.files[0];
+          e.target.value = "";
+          if (!f) return;
+          var mType = f.type.indexOf("video") === 0 ? "video" : "image";
+          if (sb.connected) {
+            var author = { username: state.user.username, name: state.user.name, avatar: null };
+            toast("Sharing your story with everyone…");
+            sbPublishStory(f, mType, author).then(function (story) {
+              state.stories.unshift(story);
+              renderStories();
+              notify("Your story was shared with everyone.");
+              toast("Story shared with everyone");
+            }).catch(function () { toast("Could not share the story — check the connection and try again"); });
+            return;
+          }
+          var url = URL.createObjectURL(f);
+          state.stories.unshift({ id: nextId(), mediaType: mType, url: url, ts: Date.now() });
+          renderStories();
+          notify("You added a new story.");
+          toast("Story added");
+        });
+
+        /* story viewer controls */
+        $("#vClose").addEventListener("click", closeStoryViewer);
+        $("#vNext").addEventListener("click", nextStory);
+        $("#vPrev").addEventListener("click", prevStory);
+
+        /* profile */
+        $$("#profileTabs button").forEach(function (b) {
+          b.addEventListener("click", function () { state.profileTab = b.getAttribute("data-tab"); renderProfile(); });
+        });
+        $("#editProfileBtn").addEventListener("click", function () {
+          $("#editName").value = state.user.name;
+          $("#editUsername").value = state.user.username;
+          $("#editBio").value = state.user.bio;
+          openSheet("editScrim");
+        });
+        $("#avatarPick").addEventListener("click", function () { $("#avatarInput").click(); });
+        $("#avatarInput").addEventListener("change", function (e) {
+          var f = e.target.files && e.target.files[0];
+          e.target.value = "";
+          if (!f) return;
+          if (state.user.avatar && state.user.avatar.indexOf("blob:") === 0) URL.revokeObjectURL(state.user.avatar);
+          state.user.avatar = URL.createObjectURL(f);
+          var curAcct = accounts[state.user.username];
+          if (curAcct) curAcct.avatar = state.user.avatar;
+          syncMeToPeople();
+          renderProfile(); renderStories(); renderFeed();
+          toast("Profile photo updated — tap Save to keep your details");
+        });
+        $("#editSave").addEventListener("click", function () {
+          var name = $("#editName").value.trim();
+          var uname = cleanUsername($("#editUsername").value) || state.user.username;
+          var oldUn = state.user.username;
+          if (name) state.user.name = name;
+          state.user.bio = $("#editBio").value.trim();
+          if (uname !== oldUn && !accounts[uname]) {
+            var rec = accounts[oldUn];
+            if (rec) { delete accounts[oldUn]; rec.username = uname; accounts[uname] = rec; }
+            state.posts.forEach(function (p) { if (p.author && p.author.username === oldUn) { p.author.username = uname; p.author.name = state.user.name; } });
+            state.stories.forEach(function (s) { if (s.author && s.author.username === oldUn) { s.author.username = uname; s.author.name = state.user.name; } });
+            state.user.username = uname;
+          } else if (uname !== oldUn) {
+            toast("That username is taken — keeping @" + oldUn);
+          }
+          var cur = accounts[state.user.username];
+          if (cur) { cur.name = state.user.name; cur.bio = state.user.bio; cur.avatar = state.user.avatar; }
+          if (sb.connected && cur) sbUpsertProfile(cur);
+          syncMeToPeople();
+          closeSheet("editScrim");
+          renderProfile(); renderStories(); renderFeed();
+          notify("You updated your profile.");
+          toast("Profile saved");
+        });
+        $("#editCancel").addEventListener("click", function () { closeSheet("editScrim"); });
+
+        /* sheets */
+        $("#actionCancel").addEventListener("click", function () { closeSheet("actionScrim"); });
+        $("#detailClose").addEventListener("click", function () {
+          closeSheet("detailScrim");
+          if (currentView === "reels") syncReelPlayback();
+        });
+        $$(".scrim").forEach(function (scrim) {
+          scrim.addEventListener("click", function (e) { if (e.target === scrim) scrim.classList.remove("open"); });
+        });
+
+        /* download / help */
+        $("#downloadBtn").addEventListener("click", downloadAppFile);
+        $("#downloadBtnTop").addEventListener("click", downloadAppFile);
+        $("#homescreenBtn").addEventListener("click", function () { openSheet("helpScrim"); });
+        $("#helpClose").addEventListener("click", function () { closeSheet("helpScrim"); });
+
+        /* shared feed */
+        renderSharedStatus();
+        $("#sharedSetupBtn").addEventListener("click", openSharedSheet);
+        $("#sharedRefreshBtn").addEventListener("click", function () { loadSharedFeed(true); });
+        $("#feedBanner").addEventListener("click", function (e) {
+          var b = e.target && e.target.closest ? e.target.closest("[data-banner]") : null;
+          if (!b) return;
+          if (b.getAttribute("data-banner") === "setup") openSharedSheet();
+          else loadSharedFeed(true);
+        });
+        $("#sbConnect").addEventListener("click", function () { connectShared($("#sbUrl").value, $("#sbKey").value); });
+        $("#sbDisconnect").addEventListener("click", function () { disconnectShared(); closeSheet("sharedScrim"); });
+        $("#sharedClose").addEventListener("click", function () { closeSheet("sharedScrim"); });
+        $("#sbCopySql").addEventListener("click", function () {
+          var sql = $("#sbSql").value;
+          function done() { toast("SQL copied — paste it in the Supabase SQL Editor and tap Run"); }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(sql).then(done, function () { fallbackCopy(sql); done(); });
+          } else { fallbackCopy(sql); done(); }
+        });
+        $("#sbIdentitySave").addEventListener("click", function () {
+          var nm = $("#sbName").value.trim();
+          var un = cleanUsername($("#sbUsername").value);
+          if (!nm || !un) { toast("Enter your name and username"); return; }
+          var acct = accounts[un] || { username: un, name: nm, email: un === "satyamkumar" ? "satyamkumar78131@gmail.com" : "", bio: "", avatar: null, passHash: null, source: un === "satyamkumar" ? "admin" : "device" };
+          acct.name = nm;
+          accounts[un] = acct;
+          applyAccount(acct);
+          toast("You will now post as @" + un);
+        });
+        /* accounts */
+        $("#signupBtn").addEventListener("click", function () { openAuth("signup"); });
+        $("#switchAccountBtn").addEventListener("click", function () { openAuth("switch"); });
+        $("#logoutBtn").addEventListener("click", doLogout);
+        $$("#authSeg button").forEach(function (b) {
+          b.addEventListener("click", function () { setAuthTab(b.getAttribute("data-auth-tab")); });
+        });
+        $("#authClose").addEventListener("click", function () { closeSheet("authScrim"); });
+        $("#signupSubmitBtn").addEventListener("click", doSignup);
+        $("#loginBtn").addEventListener("click", doLogin);
+
+        /* messages */
+        $("#newMsgBtn").addEventListener("click", openPeoplePicker);
+        $("#peopleClose").addEventListener("click", function () { closeSheet("peopleScrim"); });
+        $("#peopleSearch").addEventListener("input", function (e) { renderPeopleList(e.target.value); });
+        $("#chatForm").addEventListener("submit", function (e) { e.preventDefault(); sendChatMessage(); });
+        $("#chatBackBtn").addEventListener("click", function () { switchView("messages"); });
+        $("#userBackBtn").addEventListener("click", function () { switchView("home"); });
+
+        if (sb.url && sb.key) connectShared(sb.url, sb.key, true);
+
+        /* pause feed videos when leaving home */
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) { pauseAllReels(); if (feedObserver) feedObserver.disconnect(); }
+          else if (currentView === "home") observeFeedVideos($("#feed"));
+        });
+      }
+      document.addEventListener("DOMContentLoaded", init);
+    </script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("service-worker.js").catch(function () {});
+        });
+      }
+    </script>
+  </body>
+</html>
