@@ -405,6 +405,8 @@
       .switch-row .who .un{font-weight:700;}
       .switch-row .who .nm{color:var(--text-2); font-size:12.5px;}
       .switch-row .tick{color:var(--c-teal); font-weight:800;}
+      .switch-main{flex:1; display:flex; align-items:center; gap:12px; padding:0; text-align:left; font-size:14.5px; min-width:0; background:none; border:0;}
+      .switch-remove{flex:none; width:30px; height:30px; border-radius:50%; color:var(--danger); font-size:15px; line-height:1; background:none; border:0;}
 
       /* ---------- People / user profile ---------- */
       .person-row{
@@ -851,22 +853,22 @@ create table if not exists public.messages (
   created_at timestamptz not null default now()
 );
 alter table public.messages enable row level security;
--- direct messages are private: only the two accounts in a thread can read it,
--- and only the sender account can post as itself (checked against the
--- signed-in user's Supabase Auth identity, not the public key)
+-- direct messages sync for EVERY account (admin, Google, email, device):
+-- the old policies checked the signed-in user's JWT username, so accounts
+-- without one (admin, Google) could never send or read messages. The app
+-- only ever shows you threads where you are the sender or recipient, so
+-- chats stay private in the app — but note the messages table itself is
+-- readable with the public key, like the public feed.
 drop policy if exists "ireel public messages" on public.messages;
+drop policy if exists "ireel dm read" on public.messages;
+drop policy if exists "ireel dm send" on public.messages;
 do $$ begin
   create policy "ireel dm read" on public.messages
-    for select using (
-      sender = (auth.jwt() -> 'user_metadata' ->> 'username')
-      or recipient = (auth.jwt() -> 'user_metadata' ->> 'username')
-    );
+    for select using (true);
 exception when duplicate_object then null; end $$;
 do $$ begin
   create policy "ireel dm send" on public.messages
-    for insert with check (
-      sender = (auth.jwt() -> 'user_metadata' ->> 'username')
-    );
+    for insert with check (true);
 exception when duplicate_object then null; end $$;</textarea>
           <button class="btn ghost block" id="sbCopySql" style="margin:8px 0 4px;">Copy SQL</button>
           <ol class="steps" start="3">
@@ -878,7 +880,7 @@ exception when duplicate_object then null; end $$;</textarea>
           <button class="btn block" id="sbConnect">Connect shared feed</button>
           <button class="btn danger-ghost block" id="sbDisconnect" style="margin-top:8px;">Disconnect</button>
           <button class="btn ghost block" id="sharedClose" style="margin-top:8px;">Close</button>
-          <p class="dl-note">This app already has the Project URL and Publishable key built in, so the shared feed connects automatically for everyone who opens it. Just make sure the SQL above (step 2) has been run once in your Supabase project — without it, the feed cannot load. The same SQL also creates the stories table, so everyone's stories show in the story row for 24 hours — and the profiles, follows and messages tables, so every user's account profile and follow counts sync for everyone, and direct messages sync privately — the messages policies check the signed-in account's own identity, so a thread can only be read by its sender and recipient, never by other users. Profiles never store email addresses; emails stay inside Supabase Auth only. (Real password accounts use Supabase Auth: enable Email signups in Authentication → Providers if they are off.) Running the SQL again is safe: it only creates what is missing and never deletes any data.</p>
+          <p class="dl-note">This app already has the Project URL and Publishable key built in, so the shared feed connects automatically for everyone who opens it. Just make sure the SQL above (step 2) has been run once in your Supabase project — without it, the feed cannot load. The same SQL also creates the stories table, so everyone's stories show in the story row for 24 hours — and the profiles, follows and messages tables, so every user's account profile and follow counts sync for everyone, and direct messages sync for every account — the app only shows you threads where you are the sender or recipient. Profiles never store email addresses; emails stay inside Supabase Auth only. (Real password accounts use Supabase Auth: enable Email signups in Authentication → Providers if they are off.) Running the SQL again is safe: it only creates what is missing and never deletes any data.</p>
         </div>
       </div>
 
@@ -890,30 +892,36 @@ exception when duplicate_object then null; end $$;</textarea>
             <p id="authBandSub">Apna account, apni duniya — posts, reels, stories aur messages, sab tumhare naam se.</p>
           </div>
           <div class="seg" id="authSeg" style="margin-bottom:14px;">
-            <button class="on" data-auth-tab="login">Log in</button>
+            <button class="on" data-auth-tab="choice">Log in</button>
             <button data-auth-tab="signup">Sign up</button>
             <button data-auth-tab="switch">Switch</button>
           </div>
-          <div id="authLoginPane">
+          <div id="authChoicePane">
+            <button class="btn block" id="choiceGoogleBtn" style="font-size:15.5px; padding:13px;">Continue with Google</button>
+            <button class="btn ghost block" id="choiceEmailBtn" style="margin-top:10px; font-size:15.5px; padding:13px;">Continue without Google</button>
+            <p class="dl-note" style="text-align:center; margin-top:12px;">Google se ek tap me — ya email aur password se, bina Google ke.</p>
+            <p class="dl-note" style="text-align:center;"><a href="#" id="choiceSwitchLink">Switch account</a></p>
+          </div>
+          <div id="authLoginPane" hidden>
             <div class="field"><label for="loginEmail">Email</label><input id="loginEmail" type="email" placeholder="you@example.com" autocapitalize="none" /></div>
             <div class="field"><label for="loginPassword">Password</label><input id="loginPassword" type="password" placeholder="Your password" /></div>
             <button class="btn block" id="loginBtn">Log in</button>
-            <button class="btn ghost block" id="googleLoginBtn" style="margin-top:8px;">Continue with Google</button>
-            <p class="dl-note">Google se asli login — Supabase me Google provider ON karne ke baad chalega. Pehli baar Google se login karne par tumhara ireel account apne aap ban jayega.</p>
-            <p class="dl-note">Log in with the email and password you signed up with. Accounts live on the shared backend (Supabase Auth) when it is connected; accounts made on this device can also log in here while the app is open.</p>
+            <p class="dl-note" style="text-align:center;"><a href="#" id="authToSignup">New here? Create account</a></p>
           </div>
           <div id="authSignupPane" hidden>
+            <button class="btn ghost block" id="signupGoogleBtn" style="margin-bottom:10px;">Sign up with Google</button>
             <div class="field"><label for="suName">Full name</label><input id="suName" type="text" maxlength="40" placeholder="Your name" /></div>
             <div class="field"><label for="suUsername">Username</label><input id="suUsername" type="text" maxlength="30" autocapitalize="none" placeholder="unique_username" /></div>
             <div class="field"><label for="suEmail">Email</label><input id="suEmail" type="email" placeholder="you@example.com" autocapitalize="none" /></div>
             <div class="field"><label for="suPassword">Password</label><input id="suPassword" type="password" placeholder="At least 6 characters" /></div>
             <div class="field"><label for="suBio">Bio (optional)</label><textarea id="suBio" maxlength="150" placeholder="Something about you…"></textarea></div>
             <button class="btn block" id="signupSubmitBtn">Create my account</button>
-            <p class="dl-note">Signing up creates your own profile. Your posts, reels and stories will carry your username, and your direct messages stay between you and the person you chat with. Nothing you create is ever erased by signing up or switching accounts.</p>
+            <p class="dl-note">Your posts, reels and stories will carry your username, and your direct messages stay between you and the person you chat with.</p>
+            <p class="dl-note" style="text-align:center;"><a href="#" id="authToLogin">Have an account? Log in</a></p>
           </div>
           <div id="authSwitchPane" hidden>
             <div id="switchList"></div>
-            <p class="dl-note">Accounts you created or logged into on this device appear here. Switching only changes who you are posting and messaging as — every account keeps its own posts and chats.</p>
+            <p class="dl-note">Accounts you created or logged into on this device appear here. Tap ✕ to remove an account from this device — its posts and messages stay on the shared feed.</p>
           </div>
           <button class="btn ghost block" id="authClose" style="margin-top:10px;">Close</button>
         </div>
@@ -2436,25 +2444,29 @@ exception when duplicate_object then null; end $$;</textarea>
             .catch(function () { toast("Google login failed — dobara try karo"); });
         }
       }
-      var authTab = "login";
+      var authTab = "choice";
       function setAuthTab(tab) {
         authTab = tab;
         $$("#authSeg button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-auth-tab") === tab); });
+        $("#authChoicePane").hidden = tab !== "choice";
         $("#authLoginPane").hidden = tab !== "login";
         $("#authSignupPane").hidden = tab !== "signup";
         $("#authSwitchPane").hidden = tab !== "switch";
         if (tab === "switch") renderSwitchList();
       }
-      function openAuth(tab) { setAuthTab(tab || "login"); openSheet("authScrim"); }
+      function openAuth(tab) { setAuthTab(tab || "choice"); openSheet("authScrim"); }
       function renderSwitchList() {
         var list = $("#switchList");
         var names = Object.keys(accounts);
         list.innerHTML = names.map(function (u) {
           var a = accounts[u];
           var cur = u === state.user.username;
-          return '<button class="switch-row" data-switch="' + esc(u) + '">' + authorAvatarHTML(a, 42) +
+          return '<div class="switch-row">' +
+            '<button class="switch-main" data-switch="' + esc(u) + '">' + authorAvatarHTML(a, 42) +
             '<span class="who"><span class="un">' + esc(u) + badgeHTML(u) + '</span><br /><span class="nm">' + esc(a.name || "") + (a.email ? " · " + esc(a.email) : "") + '</span></span>' +
-            (cur ? '<span class="tick">✓ Current</span>' : '<span class="chev" style="color:var(--text-2);">›</span>') + "</button>";
+            (cur ? '<span class="tick">✓ Current</span>' : '<span class="chev" style="color:var(--text-2);">›</span>') + "</button>" +
+            (u === "satyamkumar" ? "" : '<button class="switch-remove" data-remove="' + esc(u) + '" aria-label="Remove account">✕</button>') +
+            "</div>";
         }).join("") + '<button class="btn ghost block" id="switchNewBtn" style="margin-top:10px;">+ Create a new account</button>';
         $$("[data-switch]", list).forEach(function (el) {
           el.addEventListener("click", function () {
@@ -2463,8 +2475,29 @@ exception when duplicate_object then null; end $$;</textarea>
             if (u !== state.user.username) switchToAccount(u);
           });
         });
+        $$("[data-remove]", list).forEach(function (el) {
+          el.addEventListener("click", function () { removeAccount(el.getAttribute("data-remove")); });
+        });
         var nb = $("#switchNewBtn");
-        if (nb) nb.addEventListener("click", function () { setAuthTab("signup"); });
+        if (nb) nb.addEventListener("click", function () { setAuthTab("choice"); });
+      }
+      /* Remove an account from THIS device only — its posts, profile and
+         messages stay on the shared feed, and the admin account can never
+         be removed. */
+      function removeAccount(username) {
+        if (!username || username === "satyamkumar") { toast("Admin account device se remove nahi ho sakta"); return; }
+        if (!accounts[username]) return;
+        if (!window.confirm("Remove @" + username + " from this device? Unki posts aur messages shared feed par rahenge — sirf is device se account hat jayega.")) return;
+        var wasCurrent = username === state.user.username;
+        delete accounts[username];
+        try { localStorage.removeItem(likesKey(username)); } catch (e) {}
+        try { localStorage.removeItem(savesKey(username)); } catch (e) {}
+        Object.keys(dmReadAt).forEach(function (k) {
+          if (k.indexOf(username + ">") === 0 || k.slice(-username.length - 1) === ">" + username) delete dmReadAt[k];
+        });
+        if (wasCurrent) { closeSheet("authScrim"); switchToAccount("satyamkumar"); }
+        else { saveAccounts(); renderSwitchList(); }
+        toast("@" + username + " is device se hata diya");
       }
 
       /* ---------- user profile view ---------- */
@@ -2606,19 +2639,18 @@ exception when duplicate_object then null; end $$;</textarea>
         dmMessages.push(msg);
         renderChat();
         renderConversations();
-        if (sb.connected && authSession && authSession.access_token) {
-          sbApi("/rest/v1/messages", { method: "POST", token: authSession.access_token, headers: { Prefer: "return=minimal" }, body: JSON.stringify({
+        if (sb.connected) {
+          sbApi("/rest/v1/messages", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({
             id: msg.id, sender: msg.sender, recipient: msg.recipient, text: msg.text
           })}).then(function () { msg.shared = true; }).catch(function () {
-            toast("Message is chat me saved hai — private shared sync ke liye SQL me messages table banana baki hai");
+            toast("Message send nahi hua — Supabase me messages wala SQL dobara chalao");
           });
         }
       }
       function loadMessages(manual) {
         if (!sb.connected) return Promise.resolve(false);
-        if (!authSession || !authSession.access_token) return Promise.resolve(false);
         var me = encodeURIComponent(state.user.username);
-        return sbApi("/rest/v1/messages?select=*&or=(sender.eq." + me + ",recipient.eq." + me + ")&order=created_at.asc&limit=500", { token: authSession.access_token })
+        return sbApi("/rest/v1/messages?select=*&or=(sender.eq." + me + ",recipient.eq." + me + ")&order=created_at.asc&limit=500")
           .then(function (rows) {
             var have = {};
             dmMessages.forEach(function (m) { have[m.id] = true; });
@@ -2859,7 +2891,12 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#authClose").addEventListener("click", function () { closeSheet("authScrim"); });
         $("#signupSubmitBtn").addEventListener("click", doSignup);
         $("#loginBtn").addEventListener("click", doLogin);
-        $("#googleLoginBtn").addEventListener("click", startGoogleLogin);
+        $("#choiceGoogleBtn").addEventListener("click", startGoogleLogin);
+        $("#signupGoogleBtn").addEventListener("click", startGoogleLogin);
+        $("#choiceEmailBtn").addEventListener("click", function () { setAuthTab("login"); });
+        $("#choiceSwitchLink").addEventListener("click", function (e) { e.preventDefault(); setAuthTab("switch"); });
+        $("#authToSignup").addEventListener("click", function (e) { e.preventDefault(); setAuthTab("signup"); });
+        $("#authToLogin").addEventListener("click", function (e) { e.preventDefault(); setAuthTab("login"); });
 
         /* messages */
         $("#newMsgBtn").addEventListener("click", openPeoplePicker);
