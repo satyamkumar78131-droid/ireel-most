@@ -253,7 +253,8 @@
         display:inline-block; margin-left:8px; padding:1px 8px; border-radius:20px; vertical-align:2px;
         background:var(--grad); color:#fff; font-size:11px; font-weight:700;
       }
-      .badge-mark{display:inline-block; margin-left:4px; font-size:15px; line-height:1; vertical-align:-1px;}
+      .badge-mark{display:inline-flex; align-items:center; justify-content:center; width:19px; height:19px; margin-left:4px; font-size:11px; line-height:1; vertical-align:-3px; border-radius:50%; background:radial-gradient(circle at 32% 30%, #fff9d6, #ffd700 48%, #ff9d00 85%); box-shadow:0 0 6px 1px rgba(255,215,0,.9), 0 0 12px 2px rgba(255,180,0,.45); animation:badge-shine 1.8s ease-in-out infinite;}
+      @keyframes badge-shine{0%,100%{box-shadow:0 0 6px 1px rgba(255,215,0,.9), 0 0 12px 2px rgba(255,180,0,.45);}50%{box-shadow:0 0 10px 3px rgba(255,215,0,1), 0 0 20px 6px rgba(255,180,0,.6);}}
 
       /* ---------- Download card ---------- */
       .dl-card{margin:16px; border:1px solid var(--border); border-radius:14px; padding:18px; background:var(--surface);}
@@ -994,6 +995,38 @@ exception when duplicate_object then null; end $$;</textarea>
       var myLikes = {}, mySaves = {};
       try { myLikes = JSON.parse(localStorage.getItem("ireel_myLikes") || "{}") || {}; } catch (e) { myLikes = {}; }
       try { mySaves = JSON.parse(localStorage.getItem("ireel_mySaves") || "{}") || {}; } catch (e) { mySaves = {}; }
+      /* ---------- likes & saves are per-account ----------
+         Har account ke apne likes/saves hote hain — naye account ko
+         kisi aur ID ke liked videos liked nahi dikhne chahiye. Purane
+         shared keys (ireel_myLikes / ireel_mySaves) ek baar current
+         account me migrate ho jate hain, taaki kuch delete na ho. */
+      function likesKey(u) { return "ireel_myLikes_" + u; }
+      function savesKey(u) { return "ireel_mySaves_" + u; }
+      function loadMyLikesSaves(username) {
+        username = username || (state.user && state.user.username) || "satyamkumar";
+        var lk = null, sk = null;
+        try { lk = localStorage.getItem(likesKey(username)); } catch (e) {}
+        try { sk = localStorage.getItem(savesKey(username)); } catch (e) {}
+        if (lk === null || sk === null) {
+          var migrated = false;
+          try { migrated = localStorage.getItem("ireel_likes_migrated_v1") === "1"; } catch (e) {}
+          if (!migrated) {
+            try {
+              if (lk === null) { var oldL = localStorage.getItem("ireel_myLikes"); if (oldL !== null) { localStorage.setItem(likesKey(username), oldL); lk = oldL; } }
+              if (sk === null) { var oldS = localStorage.getItem("ireel_mySaves"); if (oldS !== null) { localStorage.setItem(savesKey(username), oldS); sk = oldS; } }
+              localStorage.setItem("ireel_likes_migrated_v1", "1");
+            } catch (e) {}
+          }
+        }
+        try { myLikes = lk ? (JSON.parse(lk) || {}) : {}; } catch (e) { myLikes = {}; }
+        try { mySaves = sk ? (JSON.parse(sk) || {}) : {}; } catch (e) { mySaves = {}; }
+        (state.posts || []).forEach(function (p) { p.liked = !!myLikes[String(p.id)]; p.saved = !!mySaves[String(p.id)]; });
+      }
+      function saveMyLikesSaves() {
+        var u = (state.user && state.user.username) || "satyamkumar";
+        try { localStorage.setItem(likesKey(u), JSON.stringify(myLikes)); } catch (e) {}
+        try { localStorage.setItem(savesKey(u), JSON.stringify(mySaves)); } catch (e) {}
+      }
       var follows = {};   // username -> true, for people this device follows (session only)
       var followersOf = {}; // username -> count of followers (from shared follows + this session)
       var followingOf = {}; // username -> count of accounts they follow
@@ -1427,7 +1460,7 @@ exception when duplicate_object then null; end $$;</textarea>
         p.likeCount += p.liked ? 1 : -1;
         if (p.likeCount < 0) p.likeCount = 0;
         if (p.liked) myLikes[String(p.id)] = true; else delete myLikes[String(p.id)];
-        try { localStorage.setItem("ireel_myLikes", JSON.stringify(myLikes)); } catch (e) {}
+        saveMyLikesSaves();
         if (sb.connected && p.shared) sbPatchLike(p);
         refreshPostSurfaces();
         if (!silent) toast(p.liked ? "Liked" : "Like removed");
@@ -1462,7 +1495,7 @@ exception when duplicate_object then null; end $$;</textarea>
         var p = findPost(id); if (!p) return;
         p.saved = !p.saved;
         if (p.saved) mySaves[String(p.id)] = true; else delete mySaves[String(p.id)];
-        try { localStorage.setItem("ireel_mySaves", JSON.stringify(mySaves)); } catch (e) {}
+        saveMyLikesSaves();
         refreshPostSurfaces();
         toast(p.saved ? "Saved to your profile" : "Removed from saved");
       }
@@ -2181,6 +2214,7 @@ exception when duplicate_object then null; end $$;</textarea>
         state.user.avatar = acct.avatar || null;
         state.guest = acct.username !== "satyamkumar";
         syncMeToPeople();
+        loadMyLikesSaves(acct.username);
         renderStories(); renderFeed(); renderExplore(); renderReels(); renderNotifications(); renderProfile(); renderConversations();
       }
       function switchToAccount(username) {
@@ -2642,6 +2676,7 @@ exception when duplicate_object then null; end $$;</textarea>
           if (sa.accessToken) authSession = { access_token: sa.accessToken, refresh_token: sa.refreshToken || null, email: sa.email };
           if (sa.refreshToken && sb.url && sb.key) refreshAuthSession(sa);
         }
+        loadMyLikesSaves(state.user.username);
         handleGoogleReturn();
         syncMeToPeople();
         renderStories();
