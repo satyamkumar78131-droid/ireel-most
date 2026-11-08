@@ -927,6 +927,16 @@ exception when duplicate_object then null; end $$;</textarea>
         </div>
       </div>
 
+      <!-- DELETE ACCOUNT confirm (custom in-app dialog, no browser popup) -->
+      <div class="scrim center" id="delAcctScrim">
+        <div class="sheet center" style="text-align:center;">
+          <h3 style="margin:0 0 8px; font-size:18px;">Delete account?</h3>
+          <p id="delAcctText" style="margin:0 0 18px; color:var(--text-2); font-size:14px;"></p>
+          <button class="btn block" id="delAcctOk" style="background:var(--danger);">OK</button>
+          <button class="btn ghost block" id="delAcctNo" style="margin-top:10px;">No</button>
+        </div>
+      </div>
+
       <!-- PEOPLE PICKER (new message) -->
       <div class="scrim" id="peopleScrim">
         <div class="sheet">
@@ -2476,7 +2486,7 @@ exception when duplicate_object then null; end $$;</textarea>
           });
         });
         $$("[data-remove]", list).forEach(function (el) {
-          el.addEventListener("click", function () { removeAccount(el.getAttribute("data-remove")); });
+          el.addEventListener("click", function () { askRemoveAccount(el.getAttribute("data-remove")); });
         });
         var nb = $("#switchNewBtn");
         if (nb) nb.addEventListener("click", function () { setAuthTab("choice"); });
@@ -2484,10 +2494,18 @@ exception when duplicate_object then null; end $$;</textarea>
       /* Remove an account from THIS device only — its posts, profile and
          messages stay on the shared feed, and the admin account can never
          be removed. */
+      /* ✕ dabane par app ke andar hi poochta hai — browser ka popup nahi aata */
+      var pendingDeleteUser = null;
+      function askRemoveAccount(username) {
+        if (!username || username === "satyamkumar") { toast("Admin account device se remove nahi ho sakta"); return; }
+        if (!accounts[username]) return;
+        pendingDeleteUser = username;
+        $("#delAcctText").textContent = "@" + username + " ko is device se remove karein? Unki posts aur messages shared feed par rahenge.";
+        openSheet("delAcctScrim");
+      }
       function removeAccount(username) {
         if (!username || username === "satyamkumar") { toast("Admin account device se remove nahi ho sakta"); return; }
         if (!accounts[username]) return;
-        if (!window.confirm("Remove @" + username + " from this device? Unki posts aur messages shared feed par rahenge — sirf is device se account hat jayega.")) return;
         var wasCurrent = username === state.user.username;
         delete accounts[username];
         try { localStorage.removeItem(likesKey(username)); } catch (e) {}
@@ -2897,6 +2915,12 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#choiceSwitchLink").addEventListener("click", function (e) { e.preventDefault(); setAuthTab("switch"); });
         $("#authToSignup").addEventListener("click", function (e) { e.preventDefault(); setAuthTab("signup"); });
         $("#authToLogin").addEventListener("click", function (e) { e.preventDefault(); setAuthTab("login"); });
+        $("#delAcctOk").addEventListener("click", function () {
+          var u = pendingDeleteUser; pendingDeleteUser = null;
+          closeSheet("delAcctScrim");
+          if (u) removeAccount(u);
+        });
+        $("#delAcctNo").addEventListener("click", function () { pendingDeleteUser = null; closeSheet("delAcctScrim"); });
 
         /* messages */
         $("#newMsgBtn").addEventListener("click", openPeoplePicker);
