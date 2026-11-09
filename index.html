@@ -155,6 +155,21 @@
       .ub-row{display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;}
       .ub-track{height:6px; border-radius:3px; background:rgba(255,255,255,.25); overflow:hidden;}
       .ub-fill{height:100%; width:0%; border-radius:3px; background:linear-gradient(90deg,#fa7e1e,#d62976,#962fbf); transition:width .2s;}
+      /* ---------- Upload ratio ---------- */
+      .media-wrap.ratio-9-16{aspect-ratio:9/16;}
+      .media-wrap.ratio-1-1{aspect-ratio:1/1;}
+      .media-wrap.ratio-4-5{aspect-ratio:4/5;}
+      .media-wrap.ratio-16-9{aspect-ratio:16/9;}
+      .media-wrap.ratio-9-16 img,.media-wrap.ratio-9-16 video,.media-wrap.ratio-1-1 img,.media-wrap.ratio-1-1 video,.media-wrap.ratio-4-5 img,.media-wrap.ratio-4-5 video,.media-wrap.ratio-16-9 img,.media-wrap.ratio-16-9 video{object-fit:cover; height:100%; max-height:none;}
+      /* ---------- Admin badge floating button ---------- */
+      .badge-fab{position:fixed; right:14px; bottom:76px; width:52px; height:52px; border-radius:50%; background:var(--grad); color:#fff; font-size:24px; display:grid; place-items:center; z-index:110; box-shadow:0 6px 20px rgba(0,0,0,.35); border:2px solid rgba(255,255,255,.6);}
+      .badge-fab[hidden]{display:none;}
+      .badge-fab:active{transform:scale(.92);}
+      .badge-pick{display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:9px 6px; border-bottom:1px solid var(--border-soft); font-size:14px;}
+      .badge-pick.sel{background:var(--field); border-radius:10px;}
+      /* ---------- Reel views + upload time ---------- */
+      .rail-stat{pointer-events:none;}
+      .reel-time{font-size:12px; opacity:.75; margin-top:2px;}
       .post-actions .spacer{flex:1;}
       .act-btn{display:grid; place-items:center; width:26px; height:26px;}
       .act-btn:active{transform:scale(.88);}
@@ -497,6 +512,7 @@
         <div class="ub-row"><span id="uploadBarLabel">Uploading…</span><span id="uploadBarPct">0%</span></div>
         <div class="ub-track"><div class="ub-fill" id="uploadBarFill"></div></div>
       </div>
+      <button class="badge-fab" id="badgeFab" hidden aria-label="Give badge">⚕️</button>
       <header>
         <div class="logo-wrap" id="headLogo">
           <span class="logo-mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg></span>
@@ -619,6 +635,7 @@
           <div class="profile-btns">
             <button class="btn ghost" id="editProfileBtn">Edit profile</button>
             <button class="btn ghost" id="downloadBtnTop">Download app file</button>
+            <button class="btn ghost" id="settingsBtn">Settings</button>
           </div>
           <div class="acct-card">
             <h3>My account</h3>
@@ -639,6 +656,9 @@
             </button>
             <button data-tab="saved" aria-label="Saved">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 3.5h11V21L12 16.8 6.5 21V3.5z" stroke-linejoin="round"/></svg>
+            </button>
+            <button data-tab="history" aria-label="Watch history">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2" stroke-linecap="round"/></svg>
             </button>
           </div>
           <div class="grid" id="profileGrid"></div>
@@ -711,6 +731,16 @@
               <button class="on" data-type="post">Post</button>
               <button data-type="reel">Reel</button>
               <button data-type="story">Story</button>
+            </div>
+          </div>
+          <div class="field" id="ratioField">
+            <label>Ratio</label>
+            <div class="seg" id="ratioSeg">
+              <button class="on" data-ratio="original">Original</button>
+              <button data-ratio="9:16">9:16</button>
+              <button data-ratio="1:1">1:1</button>
+              <button data-ratio="4:5">4:5</button>
+              <button data-ratio="16:9">16:9</button>
             </div>
           </div>
           <div class="field" id="captionField">
@@ -846,6 +876,11 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 -- admin badge: lets the admin give the ⚕️ badge to any user (Profile → Badge button)
 alter table public.profiles add column if not exists badge boolean not null default false;
+-- video ratio + hide like count / turn off commenting (new columns only — nothing existing is changed or deleted)
+alter table public.posts add column if not exists ratio text not null default 'original';
+alter table public.posts add column if not exists hide_likes boolean not null default false;
+alter table public.posts add column if not exists comments_off boolean not null default false;
+alter table public.posts add column if not exists views int not null default 0;
 create table if not exists public.follows (
   id text primary key,
   follower text not null,
@@ -946,6 +981,45 @@ exception when duplicate_object then null; end $$;</textarea>
           <p id="delAcctText" style="margin:0 0 18px; color:var(--text-2); font-size:14px;"></p>
           <button class="btn block" id="delAcctOk" style="background:var(--danger);">OK</button>
           <button class="btn ghost block" id="delAcctNo" style="margin-top:10px;">No</button>
+        </div>
+      </div>
+
+      <!-- BADGE (admin only — give badge to any player) -->
+      <div class="scrim" id="badgeScrim">
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>Give badge ⚕️</h3>
+          <p class="dl-note">Kisi bhi player ko ireel badge do ya hatao. Ye button sirf admin ko dikhta hai.</p>
+          <div class="field"><input id="badgeSearch" type="search" placeholder="Search username…" autocomplete="off" /></div>
+          <div id="badgeUserList"></div>
+          <div id="badgeSelected" style="margin-top:10px; font-weight:700;"></div>
+          <button class="btn block" id="badgeGiveBtn" style="margin-top:10px;">⚕️ Badge do</button>
+          <button class="btn ghost block" id="badgeTakeBtn" style="margin-top:8px;">Badge hatao</button>
+          <button class="btn ghost block" id="badgeClose" style="margin-top:8px;">Close</button>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="scrim" id="settingsScrim">
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>Settings</h3>
+          <button class="btn block" id="clearCacheBtn">Clear cache</button>
+          <p class="dl-note">App ke saved files (cache) saaf karta hai. Tumhare account, posts aur messages safe rahenge.</p>
+          <button class="btn block" id="clearDataBtn" style="background:var(--danger);">Clear data</button>
+          <p class="dl-note">Is phone ka saara ireel data saaf karta hai — accounts, likes, history sab. Uske baad login screen aayegi.</p>
+          <button class="btn ghost block" id="clearHistoryBtn" style="margin-top:8px;">Clear watch history</button>
+          <button class="btn ghost block" id="settingsClose" style="margin-top:8px;">Close</button>
+        </div>
+      </div>
+
+      <!-- CONFIRM (generic in-app OK / Cancel, no browser popup) -->
+      <div class="scrim center" id="confirmScrim">
+        <div class="sheet center" style="text-align:center;">
+          <h3 style="margin:0 0 8px; font-size:18px;" id="confirmTitle">Are you sure?</h3>
+          <p id="confirmText" style="margin:0 0 18px; color:var(--text-2); font-size:14px;"></p>
+          <button class="btn block" id="confirmOk">OK</button>
+          <button class="btn ghost block" id="confirmNo" style="margin-top:10px;">Cancel</button>
         </div>
       </div>
 
@@ -1059,6 +1133,63 @@ exception when duplicate_object then null; end $$;</textarea>
         var u = (state.user && state.user.username) || "satyamkumar";
         try { localStorage.setItem(likesKey(u), JSON.stringify(myLikes)); } catch (e) {}
         try { localStorage.setItem(savesKey(u), JSON.stringify(mySaves)); } catch (e) {}
+      }
+      /* ---------- watch history (per account) ----------
+         Videos watched for 3+ seconds go here, most recent first, so they
+         can be rewatched from Profile → History (clock tab). */
+      var watchHistory = [];
+      function watchKey(u) { return "ireel_watch_" + u; }
+      function loadWatchHistory(username) {
+        watchHistory = [];
+        try {
+          var arr = JSON.parse(localStorage.getItem(watchKey(username)) || "[]") || [];
+          if (Array.isArray(arr)) watchHistory = arr.filter(function (x) { return typeof x === "string"; }).slice(0, 50);
+        } catch (e) {}
+      }
+      function saveWatchHistory() {
+        try { localStorage.setItem(watchKey(state.user.username), JSON.stringify(watchHistory.slice(0, 50))); } catch (e) {}
+      }
+      var viewedThisSession = {};
+      function recordWatch(id) {
+        if (!id || !state.user.username) return;
+        watchHistory = watchHistory.filter(function (x) { return x !== id; });
+        watchHistory.unshift(id);
+        watchHistory = watchHistory.slice(0, 50);
+        saveWatchHistory();
+        /* Views: count once per post per session, and push it to the shared
+           feed. The number on screen updates live (no re-render, so the
+           video keeps playing). */
+        if (!viewedThisSession[id]) {
+          viewedThisSession[id] = true;
+          var p = findPost(id);
+          if (p) {
+            p.views = (p.views || 0) + 1;
+            if (sb.connected && p.shared) {
+              sbApi("/rest/v1/posts?id=eq." + encodeURIComponent(id), { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ views: p.views }) }).catch(function () {});
+            }
+            var fv = document.querySelector('[data-views="' + id + '"]');
+            if (fv) fv.textContent = String(p.views);
+            var rv = document.querySelector('[data-rviews="' + id + '"]');
+            if (rv) rv.textContent = String(p.views);
+          }
+        }
+      }
+      function clearWatchHistory() {
+        watchHistory = [];
+        saveWatchHistory();
+        renderProfile();
+        toast("Watch history cleared");
+      }
+      function attachWatchTracker(v, getId) {
+        if (!v || v._watchTracked) return;
+        v._watchTracked = true;
+        v.addEventListener("timeupdate", function onT() {
+          if (v.currentTime >= 3) {
+            v.removeEventListener("timeupdate", onT);
+            var id = getId();
+            if (id) recordWatch(id);
+          }
+        });
       }
       var follows = {};   // username -> true, for people this device follows (session only)
       var followersOf = {}; // username -> count of followers (from shared follows + this session)
@@ -1363,11 +1494,24 @@ exception when duplicate_object then null; end $$;</textarea>
         }
         return '<img src="' + p.url + '" alt="' + esc(p.caption || "Photo by " + postAuthor(p).username) + '" />';
       }
+      /* Upload ratio: only these ratios are ever used as a CSS class (allowlist). */
+      function ratioClass(p) {
+        if (!p || !p.ratio) return "";
+        var r = String(p.ratio);
+        if (r !== "9:16" && r !== "1:1" && r !== "4:5" && r !== "16:9") return "";
+        return " ratio-" + r.replace(":", "-");
+      }
       function postCardHTML(p) {
         var a = postAuthor(p);
         var comments = p.comments.map(function (c) {
           return '<div class="comment"><span class="uname">' + esc(c.username) + badgeHTML(c.username) + "</span>" + esc(c.text) + "</div>";
         }).join("");
+        /* Likes + views + upload time, shown under every video. Likes are
+           hidden when the owner hid the like count; views always show. */
+        var metaParts = [];
+        if (!p.hideLikes && p.likeCount > 0) metaParts.push(p.likeCount + (p.likeCount === 1 ? " like" : " likes"));
+        if (p.mediaType === "video") metaParts.push('<span data-views="' + p.id + '">' + (p.views || 0) + "</span> views");
+        var metaLine = metaParts.length ? '<div class="likes-line">' + metaParts.join(" · ") + "</div>" : "";
         return '<article class="post" data-post="' + p.id + '">' +
           '<div class="post-head"><span data-user="' + esc(a.username) + '">' + authorAvatarHTML(a, 34) + "</span>" +
             '<div class="who"><div class="uname"><span data-user="' + esc(a.username) + '">' + esc(a.username) + "</span>" + badgeHTML(a.username) + "</div>" +
@@ -1376,20 +1520,20 @@ exception when duplicate_object then null; end $$;</textarea>
               ? '<button class="follow-btn' + (follows[a.username] ? " following" : "") + '" data-follow="' + esc(a.username) + '">' + (follows[a.username] ? "Following" : "Follow") + "</button>"
               : "") +
             '<button class="act-btn" data-menu="' + p.id + '" aria-label="Post options">' + IC.dots + "</button></div>" +
-          '<div class="media-wrap" data-media="' + p.id + '">' + mediaHTML(p) +
+          '<div class="media-wrap' + ratioClass(p) + '" data-media="' + p.id + '">' + mediaHTML(p) +
             (p.mediaType === "video" ? '<button class="sound-btn" data-sound="' + p.id + '" aria-label="Sound on/off">' + (feedSoundOn ? "🔊" : "🔇") + "</button>" : "") +
             '<div class="heart-pop" data-pop="' + p.id + '">' + IC.heartBig + "</div></div>" +
           '<div class="post-actions">' +
             '<button class="act-btn' + (p.liked ? " liked" : "") + '" data-like="' + p.id + '" aria-label="Like">' + IC.heart + "</button>" +
-            '<button class="act-btn" data-comment="' + p.id + '" aria-label="Comment">' + IC.comment + "</button>" +
+            (p.commentsOff ? "" : '<button class="act-btn" data-comment="' + p.id + '" aria-label="Comment">' + IC.comment + "</button>") +
             '<button class="act-btn" data-share="' + p.id + '" aria-label="Share">' + IC.share + "</button>" +
             '<span class="spacer"></span>' +
             '<button class="act-btn' + (p.saved ? " saved" : "") + '" data-save="' + p.id + '" aria-label="Save">' + IC.save + "</button></div>" +
-          (p.likeCount > 0 ? '<div class="likes-line">' + p.likeCount + (p.likeCount === 1 ? " like" : " likes") + "</div>" : "") +
+          metaLine +
           (p.caption ? '<div class="caption-line"><span class="uname">' + esc(a.username) + "</span>" + esc(p.caption) + "</div>" : "") +
-          (p.comments.length ? '<button class="comments-toggle" data-toggle-comments="' + p.id + '">View all ' + p.comments.length + (p.comments.length === 1 ? " comment" : " comments") + "</button>" : "") +
-          '<div class="comments-box" data-comments="' + p.id + '">' + comments +
-            '<form class="comment-form" data-form="' + p.id + '"><input type="text" placeholder="Add a comment…" maxlength="300" autocomplete="off" /><button type="submit">Post</button></form></div>' +
+          (!p.commentsOff && p.comments.length ? '<button class="comments-toggle" data-toggle-comments="' + p.id + '">View all ' + p.comments.length + (p.comments.length === 1 ? " comment" : " comments") + "</button>" : "") +
+          (p.commentsOff ? "" : '<div class="comments-box" data-comments="' + p.id + '">' + comments +
+            '<form class="comment-form" data-form="' + p.id + '"><input type="text" placeholder="Add a comment…" maxlength="300" autocomplete="off" /><button type="submit">Post</button></form></div>') +
           '<div class="time-line">' + timeAgo(p.ts) + "</div>" +
           "</article>";
       }
@@ -1504,7 +1648,10 @@ exception when duplicate_object then null; end $$;</textarea>
             else e.target.pause();
           });
         }, { threshold: 0.55 });
-        $$("video", root).forEach(function (v) { feedObserver.observe(v); });
+        $$("video", root).forEach(function (v) {
+          feedObserver.observe(v);
+          attachWatchTracker(v, function () { var w = v.closest("[data-media]"); return w ? w.getAttribute("data-media") : null; });
+        });
       }
       function toggleLike(id, silent) {
         var p = findPost(id); if (!p) return;
@@ -1587,10 +1734,11 @@ exception when duplicate_object then null; end $$;</textarea>
           : (list.length ? "" : 'No posts match "' + state.search + '".');
         var pr = $("#peopleResults");
         if (pr) {
+          /* Search shows the full list of all users (not just matches) — typing filters it. */
           var matches = Object.keys(people).map(function (k) { return people[k]; }).filter(function (p) {
-            return q && p.username !== state.user.username &&
-              (p.username.toLowerCase().indexOf(q) !== -1 || (p.name || "").toLowerCase().indexOf(q) !== -1);
-          });
+            return p.username !== state.user.username &&
+              (!q || p.username.toLowerCase().indexOf(q) !== -1 || (p.name || "").toLowerCase().indexOf(q) !== -1);
+          }).sort(function (a, b) { return a.username.localeCompare(b.username); });
           pr.innerHTML = matches.length
             ? '<div style="padding:2px 14px 6px; font-weight:800; font-size:13px; color:var(--accent-3);">People</div>' + matches.map(function (p) {
                 return '<button class="person-row" data-person="' + esc(p.username) + '">' + authorAvatarHTML(p, 44) +
@@ -1625,8 +1773,9 @@ exception when duplicate_object then null; end $$;</textarea>
             '<video src="' + p.url + '" loop playsinline preload="metadata"></video>' +
             '<div class="reel-progress"><i data-progress="' + p.id + '"></i></div>' +
             '<div class="reel-rail">' +
-              '<button class="rail-btn' + (p.liked ? " liked" : "") + '" data-rlike="' + p.id + '">' + '<span class="bubble">' + IC.heart + "</span>" + p.likeCount + "</button>" +
-              '<button class="rail-btn" data-rcomment="' + p.id + '"><span class="bubble">' + IC.comment + "</span>" + p.comments.length + "</button>" +
+              '<button class="rail-btn' + (p.liked ? " liked" : "") + '" data-rlike="' + p.id + '">' + '<span class="bubble">' + IC.heart + "</span>" + (p.hideLikes ? "" : p.likeCount) + "</button>" +
+              '<span class="rail-btn rail-stat"><span class="bubble">👁️</span><span data-rviews="' + p.id + '">' + (p.views || 0) + "</span></span>" +
+              (p.commentsOff ? "" : '<button class="rail-btn" data-rcomment="' + p.id + '"><span class="bubble">' + IC.comment + "</span>" + p.comments.length + "</button>") +
               '<button class="rail-btn" data-rshare="' + p.id + '"><span class="bubble">' + IC.share + "</span>Share</button>" +
               '<button class="rail-btn' + (p.saved ? " saved" : "") + '" data-rsave="' + p.id + '"><span class="bubble">' + IC.save + "</span>Save</button>" +
             "</div>" +
@@ -1634,7 +1783,8 @@ exception when duplicate_object then null; end $$;</textarea>
             (postAuthor(p).username !== state.user.username
               ? '<button class="reel-follow' + (follows[postAuthor(p).username] ? " following" : "") + '" data-rfollow="' + esc(postAuthor(p).username) + '">' + (follows[postAuthor(p).username] ? "Following" : "Follow") + "</button>"
               : "") + "</div>" +
-            (p.caption ? "<div>" + esc(p.caption) + "</div>" : "") + "</div>" +
+            (p.caption ? "<div>" + esc(p.caption) + "</div>" : "") +
+            '<div class="reel-time">' + timeAgo(p.ts) + "</div></div>" +
             "</div>";
         }).join("");
         $$("[data-rfollow]", track).forEach(function (el) {
@@ -1663,6 +1813,7 @@ exception when duplicate_object then null; end $$;</textarea>
         });
         $$(".reel-slide video", track).forEach(function (v) {
           v.addEventListener("click", function () { if (v.paused) v.play(); else v.pause(); });
+          attachWatchTracker(v, function () { var s = v.closest(".reel-slide"); return s ? s.getAttribute("data-slide") : null; });
           v.addEventListener("timeupdate", function () {
             var slide = v.closest(".reel-slide");
             if (!slide) return;
@@ -1723,17 +1874,32 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#statFollowers").textContent = String(followersOf[state.user.username] || 0);
         $("#statFollowing").textContent = String(Math.max(Object.keys(follows).length, followingOf[state.user.username] || 0));
         var acct = accounts[state.user.username];
-        $("#accountSummary").textContent = "Signed in as @" + state.user.username + (state.user.email ? " · " + state.user.email : "") +
-          (acct && acct.source === "supabase" ? " · account on the shared backend" : acct && acct.source === "device" ? " · account created on this device" : " · admin account");
+        /* The label must never call a non-admin account "admin". Google
+           accounts are saved with source "google" — the old code only knew
+           "supabase" and "device", so every Google account fell through to
+           "admin account". */
+        var srcLabel = "";
+        if (acct) {
+          if (acct.source === "supabase") srcLabel = " · account on the shared backend";
+          else if (acct.source === "device") srcLabel = " · account created on this device";
+          else if (acct.source === "google") srcLabel = " · Google account";
+          else if (acct.source === "admin" || state.user.username === "satyamkumar") srcLabel = " · admin account";
+        }
+        $("#accountSummary").textContent = "Signed in as @" + state.user.username + (state.user.email ? " · " + state.user.email : "") + srcLabel;
         if (currentView === "profile") $("#headTitle").textContent = state.user.username;
         var tab = state.profileTab;
         $$("#profileTabs button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === tab); });
-        var list = state.posts.filter(function (p) {
-          if (tab === "saved") return p.saved;
-          if (postAuthor(p).username !== state.user.username) return false;
-          if (tab === "reels") return p.kind === "reel" || p.mediaType === "video";
-          return true;
-        });
+        var list;
+        if (tab === "history") {
+          list = watchHistory.map(function (id) { return findPost(id); }).filter(function (p) { return !!p; });
+        } else {
+          list = state.posts.filter(function (p) {
+            if (tab === "saved") return p.saved;
+            if (postAuthor(p).username !== state.user.username) return false;
+            if (tab === "reels") return p.kind === "reel" || p.mediaType === "video";
+            return true;
+          });
+        }
         var grid = $("#profileGrid");
         grid.innerHTML = list.map(function (p) {
           var inner = p.mediaType === "video"
@@ -1743,7 +1909,8 @@ exception when duplicate_object then null; end $$;</textarea>
         }).join("");
         $("#profileMsg").textContent = list.length ? "" :
           (tab === "saved" ? "Posts you save will appear here." :
-           tab === "reels" ? "Your reels will appear here." : "Your posts will appear here.");
+           tab === "reels" ? "Your reels will appear here." :
+           tab === "history" ? "Videos you watch will appear here." : "Your posts will appear here.");
         $$("[data-pcell]", grid).forEach(function (el) {
           el.addEventListener("click", function () { openDetail(el.getAttribute("data-pcell")); });
         });
@@ -1806,6 +1973,8 @@ exception when duplicate_object then null; end $$;</textarea>
           { icon: IC.copy, label: "Copy caption", fn: function () { copyCaption(p); } }
         ];
         if (postAuthor(p).username === state.user.username) {
+          rows.push({ icon: IC.heart, label: p.hideLikes ? "Show like count" : "Hide like count", fn: function () { setPostFlag(id, "hideLikes", !p.hideLikes); } });
+          rows.push({ icon: IC.comment, label: p.commentsOff ? "Turn on commenting" : "Turn off commenting", fn: function () { setPostFlag(id, "commentsOff", !p.commentsOff); } });
           rows.push({ icon: IC.trash, label: "Delete post", danger: true, fn: function () { deletePost(id); } });
         }
         sheetRows(rows);
@@ -1819,22 +1988,42 @@ exception when duplicate_object then null; end $$;</textarea>
         toast("Post deleted");
       }
 
+      /* ---------- hide like count / turn off commenting (per post) ---------- */
+      function setPostFlag(id, key, val) {
+        var p = findPost(id); if (!p) return;
+        p[key] = val;
+        if (sb.connected && p.shared) {
+          var patch = {};
+          patch[key === "hideLikes" ? "hide_likes" : "comments_off"] = !!val;
+          sbApi("/rest/v1/posts?id=eq." + encodeURIComponent(id), { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(patch) })
+            .catch(function () { toast("Is device par save ho gaya — sabko dikhane ke liye Shared feed wala SQL dobara chalao"); });
+        }
+        refreshPostSurfaces();
+        toast(val ? (key === "hideLikes" ? "Like count hidden" : "Commenting off") : (key === "hideLikes" ? "Like count shown" : "Commenting on"));
+      }
+
       /* ---------- create ---------- */
-      var pendingFile = null, pendingType = "post";
+      var pendingFile = null, pendingType = "post", pendingRatio = "original";
       function openCreate(type) {
         pendingType = type || "post";
         pendingFile = null;
+        pendingRatio = "original";
         $("#previewMedia").style.display = "none";
         $("#previewMedia").innerHTML = "";
         $("#pickZone").style.display = "block";
         $("#captionInput").value = "";
         updateTypeSeg();
+        updateRatioSeg();
         updateShareBtn();
         openSheet("createScrim");
       }
       function updateTypeSeg() {
         $$("#typeSeg button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-type") === pendingType); });
         $("#captionField").style.display = pendingType === "story" ? "none" : "block";
+        $("#ratioField").style.display = pendingType === "story" ? "none" : "block";
+      }
+      function updateRatioSeg() {
+        $$("#ratioSeg button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-ratio") === pendingRatio); });
       }
       function updateShareBtn() {
         var btn = $("#shareBtn");
@@ -1902,7 +2091,7 @@ exception when duplicate_object then null; end $$;</textarea>
           closeSheet("createScrim");
           switchView(kind === "reel" ? "reels" : "home");
           showUploadProgress(kind === "reel" ? "Reel upload ho raha hai…" : "Post upload ho raha hai…", 0);
-          sbPublishPost(sendFile, sendType, kind, caption, author, function (pct) { showUploadProgress(null, pct); }).then(function (post) {
+          sbPublishPost(sendFile, sendType, kind, caption, author, function (pct) { showUploadProgress(null, pct); }, pendingRatio).then(function (post) {
             URL.revokeObjectURL(sendUrl);
             hideUploadProgress();
             state.posts.unshift(post);
@@ -1923,7 +2112,7 @@ exception when duplicate_object then null; end $$;</textarea>
           caption: caption,
           liked: false, likeCount: 0, saved: false,
           comments: [], ts: Date.now(),
-          author: author, shared: false
+          author: author, shared: false, ratio: pendingRatio, hideLikes: false, commentsOff: false, views: 0
         };
         pendingFile = null;
         state.posts.unshift(post);
@@ -2007,6 +2196,7 @@ exception when duplicate_object then null; end $$;</textarea>
               id: String(r.id), kind: r.kind, mediaType: r.media_type, url: r.media_url,
               caption: r.caption || "", liked: !!myLikes[String(r.id)], likeCount: r.like_count || 0,
               saved: !!mySaves[String(r.id)], comments: byPost[r.id] || [],
+              ratio: r.ratio || "original", hideLikes: !!r.hide_likes, commentsOff: !!r.comments_off, views: r.views || 0,
               ts: Date.parse(r.created_at) || Date.now(), shared: true,
               author: { username: r.username, name: r.display_name || r.username, avatar: cleanSharedUrl(r.avatar_url) }
             };
@@ -2123,7 +2313,7 @@ exception when duplicate_object then null; end $$;</textarea>
         var bar = $("#uploadBar");
         if (bar) bar.hidden = true;
       }
-      function sbPublishPost(file, mediaType, kind, caption, author, onProgress) {
+      function sbPublishPost(file, mediaType, kind, caption, author, onProgress, ratio) {
         var id = "p" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
         var rawExt = (file.name && file.name.split(".").pop()) || (mediaType === "video" ? "mp4" : "jpg");
         var ext = String(rawExt).replace(/[^a-z0-9]/gi, "").toLowerCase() || (mediaType === "video" ? "mp4" : "jpg");
@@ -2132,14 +2322,23 @@ exception when duplicate_object then null; end $$;</textarea>
           var url = sbBase() + "/storage/v1/object/public/media/" + path;
           var row = {
             id: id, kind: kind, media_type: mediaType, media_url: url, caption: caption,
+            username: author.username, display_name: author.name, avatar_url: "", like_count: 0,
+            ratio: ratio || "original", hide_likes: false, comments_off: false
+          };
+          var baseRow = {
+            id: id, kind: kind, media_type: mediaType, media_url: url, caption: caption,
             username: author.username, display_name: author.name, avatar_url: "", like_count: 0
           };
+          /* If the new columns are not in the table yet (SQL not re-run), the
+             first insert fails — retry with the original fields so the post
+             still publishes, just without the new flags. */
           return sbApi("/rest/v1/posts", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) })
+            .catch(function () { return sbApi("/rest/v1/posts", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(baseRow) }); })
             .then(function () {
               return {
                 id: id, kind: kind, mediaType: mediaType, url: url, caption: caption,
                 liked: false, likeCount: 0, saved: false, comments: [], ts: Date.now(),
-                shared: true, author: author
+                shared: true, author: author, ratio: ratio || "original", hideLikes: false, commentsOff: false, views: 0
               };
             });
         });
@@ -2291,6 +2490,41 @@ exception when duplicate_object then null; end $$;</textarea>
           toast("Badge save nahi hua — Supabase me Shared feed wala SQL dobara chalao (usme badge column add hua hai)");
         });
       }
+      /* ---------- admin badge floating button ---------- */
+      var badgeSelectedUser = null;
+      function updateBadgeFab() {
+        var fab = $("#badgeFab");
+        if (fab) fab.hidden = state.user.username !== "satyamkumar";
+      }
+      function renderBadgeList(q) {
+        q = (q || "").trim().toLowerCase();
+        var all = Object.keys(people).map(function (k) { return people[k]; })
+          .filter(function (p) { return p.username !== state.user.username; })
+          .filter(function (p) { return !q || p.username.toLowerCase().indexOf(q) !== -1 || (p.name || "").toLowerCase().indexOf(q) !== -1; })
+          .sort(function (a, b) { return a.username.localeCompare(b.username); });
+        var list = $("#badgeUserList");
+        list.innerHTML = all.length ? all.map(function (p) {
+          return '<button class="badge-pick' + (badgeSelectedUser === p.username ? " sel" : "") + '" data-badge-user="' + esc(p.username) + '">' + authorAvatarHTML(p, 40) +
+            '<span><span style="font-weight:700;">' + esc(p.username) + "</span>" + badgeHTML(p.username) + '<br /><span style="color:var(--text-2); font-size:12.5px;">' + esc(p.name || "") + "</span></span></button>";
+        }).join("") : '<p class="dl-note">Koi player nahi mila.</p>';
+        $$("[data-badge-user]", list).forEach(function (el) {
+          el.addEventListener("click", function () {
+            badgeSelectedUser = el.getAttribute("data-badge-user");
+            var sel = $("#badgeSelected");
+            if (sel) sel.textContent = "@" + badgeSelectedUser + (hasBadge(badgeSelectedUser) ? " — badge hai" : " — badge nahi hai");
+            renderBadgeList($("#badgeSearch").value);
+          });
+        });
+      }
+      function openBadgeSheet() {
+        if (state.user.username !== "satyamkumar") return;
+        badgeSelectedUser = null;
+        var sel = $("#badgeSelected"); if (sel) sel.textContent = "";
+        var inp = $("#badgeSearch"); if (inp) inp.value = "";
+        renderBadgeList("");
+        openSheet("badgeScrim");
+      }
+
       function applyAccount(acct) {
         state.user.name = acct.name || acct.username;
         state.user.username = acct.username;
@@ -2300,6 +2534,11 @@ exception when duplicate_object then null; end $$;</textarea>
         state.guest = acct.username !== "satyamkumar";
         syncMeToPeople();
         loadMyLikesSaves(acct.username);
+        loadWatchHistory(acct.username);
+        /* Notifications belong to the signed-in account — never show the
+           previous account's notifications after a switch. */
+        state.notifications = [];
+        updateBadgeFab();
         renderStories(); renderFeed(); renderExplore(); renderReels(); renderNotifications(); renderProfile(); renderConversations();
       }
       function switchToAccount(username) {
@@ -2606,6 +2845,31 @@ exception when duplicate_object then null; end $$;</textarea>
         toast("@" + username + " is device se hata diya");
       }
 
+      /* ---------- generic in-app confirm (no browser popup) ---------- */
+      var pendingConfirmFn = null;
+      function askConfirm(title, text, fn) {
+        $("#confirmTitle").textContent = title;
+        $("#confirmText").textContent = text;
+        pendingConfirmFn = fn;
+        openSheet("confirmScrim");
+      }
+      function clearAppCache() {
+        function done() {
+          toast("Cache cleared — reloading");
+          setTimeout(function () { location.reload(); }, 600);
+        }
+        if ("caches" in window) {
+          caches.keys().then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); }).then(done).catch(done);
+        } else done();
+      }
+      function clearAppData() {
+        try { localStorage.clear(); } catch (e) {}
+        try { sessionStorage.clear(); } catch (e) {}
+        if ("caches" in window) {
+          caches.keys().then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); }).then(function () { location.reload(); }).catch(function () { location.reload(); });
+        } else location.reload();
+      }
+
       /* ---------- user profile view ---------- */
       function openUserProfile(username) {
         if (!username) return;
@@ -2824,6 +3088,7 @@ exception when duplicate_object then null; end $$;</textarea>
           if (sa.refreshToken && sb.url && sb.key) refreshAuthSession(sa);
         }
         loadMyLikesSaves(state.user.username);
+        loadWatchHistory(state.user.username);
         var googleReturning = false;
         try {
           var _rq = new URLSearchParams(location.search);
@@ -2842,6 +3107,22 @@ exception when duplicate_object then null; end $$;</textarea>
         renderNotifications();
         renderProfile();
         renderConversations();
+        updateBadgeFab();
+        /* Auto-refresh: poora shared feed har 2 minute me refresh hota hai,
+           taaki nayi posts bina Refresh dabaye aa jayein. Sheet khuli ho,
+           upload chal raha ho, ya comment likh rahe ho to skip — taaki
+           dekhne/likhne me rukawat na aaye. Scroll position bani rehti hai. */
+        setInterval(function () {
+          if (!sb.connected) return;
+          if (document.querySelector(".scrim.open")) return;
+          var ub = $("#uploadBar"); if (ub && !ub.hidden) return;
+          if (currentView !== "home") return;
+          var ae = document.activeElement;
+          if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA")) return;
+          var hv = $("#view-home");
+          var st = hv ? hv.scrollTop : 0;
+          loadSharedFeed(false).then(function () { if (hv) hv.scrollTop = st; }).catch(function () {});
+        }, 120000);
 
         $$("#bottomNav button").forEach(function (b) {
           b.addEventListener("click", function () {
@@ -2875,6 +3156,9 @@ exception when duplicate_object then null; end $$;</textarea>
         });
         $$("#typeSeg button").forEach(function (b) {
           b.addEventListener("click", function () { pendingType = b.getAttribute("data-type"); updateTypeSeg(); updateShareBtn(); });
+        });
+        $$("#ratioSeg button").forEach(function (b) {
+          b.addEventListener("click", function () { pendingRatio = b.getAttribute("data-ratio"); updateRatioSeg(); });
         });
         $("#shareBtn").addEventListener("click", doShare);
         $("#createCancel").addEventListener("click", function () { closeSheet("createScrim"); });
@@ -3013,6 +3297,20 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#signupBtn").addEventListener("click", function () { openAuth("signup"); });
         $("#switchAccountBtn").addEventListener("click", function () { openAuth("switch"); });
         $("#logoutBtn").addEventListener("click", doLogout);
+        /* Admin badge floating button (only visible for the admin account) */
+        $("#badgeFab").addEventListener("click", openBadgeSheet);
+        $("#badgeSearch").addEventListener("input", function (e) { renderBadgeList(e.target.value); });
+        $("#badgeGiveBtn").addEventListener("click", function () { if (badgeSelectedUser) setBadge(badgeSelectedUser, true); else toast("Pehle ek player chuno"); });
+        $("#badgeTakeBtn").addEventListener("click", function () { if (badgeSelectedUser) setBadge(badgeSelectedUser, false); else toast("Pehle ek player chuno"); });
+        $("#badgeClose").addEventListener("click", function () { closeSheet("badgeScrim"); });
+        /* Settings: clear cache / clear data / clear watch history (all with in-app OK confirm) */
+        $("#settingsBtn").addEventListener("click", function () { openSheet("settingsScrim"); });
+        $("#settingsClose").addEventListener("click", function () { closeSheet("settingsScrim"); });
+        $("#clearCacheBtn").addEventListener("click", function () { askConfirm("Clear cache?", "App ke saved files saaf ho jayenge. Tumhare account, posts aur messages safe rahenge.", clearAppCache); });
+        $("#clearDataBtn").addEventListener("click", function () { askConfirm("Clear data?", "Is phone ka saara ireel data saaf ho jayega — accounts, likes, history sab. Uske baad login screen aayegi.", clearAppData); });
+        $("#clearHistoryBtn").addEventListener("click", function () { askConfirm("Clear watch history?", "Dekhi hui videos ki list saaf ho jayegi.", clearWatchHistory); });
+        $("#confirmOk").addEventListener("click", function () { closeSheet("confirmScrim"); var f = pendingConfirmFn; pendingConfirmFn = null; if (f) f(); });
+        $("#confirmNo").addEventListener("click", function () { pendingConfirmFn = null; closeSheet("confirmScrim"); });
         $$("#authSeg button").forEach(function (b) {
           b.addEventListener("click", function () { setAuthTab(b.getAttribute("data-auth-tab")); });
         });
