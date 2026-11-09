@@ -1100,6 +1100,12 @@ exception when duplicate_object then null; end $$;</textarea>
           });
         } catch (e) {}
       }
+      /* Is there a real signed-in account on THIS device? Used to decide
+         whether the login sheet may be dismissed — a fresh phone has none,
+         so it must never silently fall through to the admin account. */
+      function deviceHasAccount() {
+        try { return !!localStorage.getItem(CURRENT_KEY); } catch (e) { return false; }
+      }
       function refreshAuthSession(acct) {
         if (!acct || !acct.refreshToken || !sb.url || !sb.key) return Promise.resolve(false);
         return sbAuthRequest("/auth/v1/token?grant_type=refresh_token", { refresh_token: acct.refreshToken })
@@ -2350,13 +2356,18 @@ exception when duplicate_object then null; end $$;</textarea>
       }
       function doLogout() {
         authSession = null;
-        var home = accounts["satyamkumar"];
         follows = {};
-        applyAccount(home);
-        saveAccounts();
+        /* Log out properly: forget who was signed in on this device and
+           show the login/signup choice. Logging out must NOT drop anyone
+           into the admin account — that is how strangers ended up posting
+           as satyamkumar. */
+        try { localStorage.removeItem(CURRENT_KEY); } catch (e) {}
+        state.user = { name: "", username: "", bio: "", email: "", avatar: null };
+        state.guest = true;
         if (sb.connected) loadSharedFeed(false);
-        toast("Logged out — admin account par wapas aa gaye");
         switchView("home");
+        openAuth("choice");
+        toast("Logged out — apne account se dobara login karo");
       }
       /* ---------- Google login (real OAuth via Supabase) ----------
          Needs the Google provider enabled in the Supabase dashboard
@@ -2467,7 +2478,15 @@ exception when duplicate_object then null; end $$;</textarea>
       function openAuth(tab) { setAuthTab(tab || "choice"); openSheet("authScrim"); }
       function renderSwitchList() {
         var list = $("#switchList");
-        var names = Object.keys(accounts);
+        /* Only accounts that actually signed in on THIS device belong here.
+           The admin record is seeded in the code, so without this filter a
+           stranger on a fresh phone could tap it and become the admin. */
+        var curSaved = "";
+        try { curSaved = localStorage.getItem(CURRENT_KEY) || ""; } catch (e) {}
+        var names = Object.keys(accounts).filter(function (u) {
+          var a = accounts[u];
+          return !!(a && (a.passHash || a.accessToken || a.refreshToken || u === curSaved));
+        });
         list.innerHTML = names.map(function (u) {
           var a = accounts[u];
           var cur = u === state.user.username;
@@ -2513,7 +2532,15 @@ exception when duplicate_object then null; end $$;</textarea>
         Object.keys(dmReadAt).forEach(function (k) {
           if (k.indexOf(username + ">") === 0 || k.slice(-username.length - 1) === ">" + username) delete dmReadAt[k];
         });
-        if (wasCurrent) { closeSheet("authScrim"); switchToAccount("satyamkumar"); }
+        if (wasCurrent) {
+          /* Removing the signed-in account must NOT fall back to the admin
+             account — show the login/signup choice instead. */
+          try { localStorage.removeItem(CURRENT_KEY); } catch (e) {}
+          state.user = { name: "", username: "", bio: "", email: "", avatar: null };
+          state.guest = true;
+          saveAccounts();
+          openAuth("choice");
+        }
         else { saveAccounts(); renderSwitchList(); }
         toast("@" + username + " is device se hata diya");
       }
@@ -2727,7 +2754,16 @@ exception when duplicate_object then null; end $$;</textarea>
           if (sa.refreshToken && sb.url && sb.key) refreshAuthSession(sa);
         }
         loadMyLikesSaves(state.user.username);
+        var googleReturning = false;
+        try {
+          var _rq = new URLSearchParams(location.search);
+          googleReturning = !!(_rq.get("code") || _rq.get("error") || (location.hash && location.hash.indexOf("access_token=") !== -1));
+        } catch (e) {}
         handleGoogleReturn();
+        /* Fresh device? Nobody has signed in here yet — the app must NOT
+           silently open as the admin account. Force the login/signup
+           choice so every person uses the app as themselves. */
+        if (!(savedUser && accounts[savedUser]) && !googleReturning) openAuth("choice");
         syncMeToPeople();
         renderStories();
         renderFeed();
@@ -2860,7 +2896,11 @@ exception when duplicate_object then null; end $$;</textarea>
           if (currentView === "reels") syncReelPlayback();
         });
         $$(".scrim").forEach(function (scrim) {
-          scrim.addEventListener("click", function (e) { if (e.target === scrim) scrim.classList.remove("open"); });
+          scrim.addEventListener("click", function (e) {
+            if (e.target !== scrim) return;
+            if (scrim.id === "authScrim" && !deviceHasAccount()) { toast("Pehle apna account banao ya login karo"); return; }
+            scrim.classList.remove("open");
+          });
         });
 
         /* download / help */
@@ -2906,7 +2946,10 @@ exception when duplicate_object then null; end $$;</textarea>
         $$("#authSeg button").forEach(function (b) {
           b.addEventListener("click", function () { setAuthTab(b.getAttribute("data-auth-tab")); });
         });
-        $("#authClose").addEventListener("click", function () { closeSheet("authScrim"); });
+        $("#authClose").addEventListener("click", function () {
+          if (!deviceHasAccount()) { toast("Pehle apna account banao ya login karo"); return; }
+          closeSheet("authScrim");
+        });
         $("#signupSubmitBtn").addEventListener("click", doSignup);
         $("#loginBtn").addEventListener("click", doLogin);
         $("#choiceGoogleBtn").addEventListener("click", startGoogleLogin);
