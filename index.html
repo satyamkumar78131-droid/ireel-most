@@ -534,6 +534,9 @@
         </div>
         <div class="head-title" id="headTitle" hidden></div>
         <div class="head-actions">
+          <button class="icon-btn" id="headFsBtn" aria-label="Full screen">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
           <button class="icon-btn" id="headCreateBtn" aria-label="Create">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8" stroke-linecap="round"/></svg>
           </button>
@@ -2891,7 +2894,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-09-4";
+      var APP_VERSION = "2026-11-09-5";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
@@ -2929,6 +2932,32 @@ exception when duplicate_object then null; end $$;</textarea>
         hideInstallBar();
         var pb = $("#profileInstallBtn"); if (pb) pb.style.display = "none";
       });
+      /* ---------- Full screen (hides the browser bar while using the app) ----------
+         One tap on the ⛶ button in the header hides the browser's address bar
+         until you tap it again (or leave the app). This is a per-open hide —
+         installing the app is the only permanent way to never see the bar. */
+      var FS_EXPAND = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+      var FS_SHRINK = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>';
+      function isFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+      function updateFsBtn() {
+        var b = $("#headFsBtn"); if (!b) return;
+        b.innerHTML = isFullscreen() ? FS_SHRINK : FS_EXPAND;
+        b.setAttribute("aria-label", isFullscreen() ? "Exit full screen" : "Full screen");
+      }
+      function toggleFullscreen() {
+        if (!isFullscreen()) {
+          var el = document.documentElement, p = null;
+          if (el.requestFullscreen) p = el.requestFullscreen();
+          else if (el.webkitRequestFullscreen) p = el.webkitRequestFullscreen();
+          else { toast("Is browser me full screen nahi hai — app install karo, bar hamesha ke liye gayab ho jayega"); return; }
+          if (p && p.catch) p.catch(function () { toast("Full screen nahi khula — app install karo"); });
+        } else {
+          if (document.exitFullscreen) document.exitFullscreen();
+          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }
+      }
+      document.addEventListener("fullscreenchange", updateFsBtn);
+      document.addEventListener("webkitfullscreenchange", updateFsBtn);
 
       /* ---------- user profile view ---------- */
       function openUserProfile(username) {
@@ -3377,6 +3406,8 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#installDismiss").addEventListener("click", function () { try { sessionStorage.setItem("ireel_install_dismissed", "1"); } catch (e) {} hideInstallBar(); });
         $("#profileInstallBtn").addEventListener("click", installApp);
         $("#updateReloadBtn").addEventListener("click", function () { location.reload(); });
+        $("#headFsBtn").addEventListener("click", toggleFullscreen);
+        updateFsBtn();
         if (isStandalone()) { var pb2 = $("#profileInstallBtn"); if (pb2) pb2.style.display = "none"; }
         if ("serviceWorker" in navigator) { navigator.serviceWorker.addEventListener("controllerchange", function () { showUpdateBar(); }); }
         document.addEventListener("visibilitychange", function () { if (!document.hidden) checkAppUpdate(); });
