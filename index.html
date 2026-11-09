@@ -147,6 +147,14 @@
         100%{opacity:0; transform:scale(1.05) translateY(-8px);}
       }
       .post-actions{display:flex; align-items:center; gap:16px; padding:9px 12px 4px;}
+      .sound-btn{position:absolute; top:10px; right:10px; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; font-size:17px; display:grid; place-items:center; z-index:5; border:1px solid rgba(255,255,255,.25);}
+      .sound-btn:active{transform:scale(.9);}
+      /* ---------- Upload progress bar (background upload) ---------- */
+      .upload-bar{position:fixed; top:54px; left:0; right:0; z-index:200; background:rgba(0,0,0,.88); color:#fff; padding:9px 14px 10px; font-size:13px; font-weight:600; box-shadow:0 4px 16px rgba(0,0,0,.35);}
+      .upload-bar[hidden]{display:none;}
+      .ub-row{display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;}
+      .ub-track{height:6px; border-radius:3px; background:rgba(255,255,255,.25); overflow:hidden;}
+      .ub-fill{height:100%; width:0%; border-radius:3px; background:linear-gradient(90deg,#fa7e1e,#d62976,#962fbf); transition:width .2s;}
       .post-actions .spacer{flex:1;}
       .act-btn{display:grid; place-items:center; width:26px; height:26px;}
       .act-btn:active{transform:scale(.88);}
@@ -485,6 +493,10 @@
   </head>
   <body>
     <div class="app" id="app">
+      <div class="upload-bar" id="uploadBar" hidden>
+        <div class="ub-row"><span id="uploadBarLabel">Uploading…</span><span id="uploadBarPct">0%</span></div>
+        <div class="ub-track"><div class="ub-fill" id="uploadBarFill"></div></div>
+      </div>
       <header>
         <div class="logo-wrap" id="headLogo">
           <span class="logo-mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg></span>
@@ -1003,6 +1015,9 @@ exception when duplicate_object then null; end $$;</textarea>
       };
       var uid = 1;
       function nextId() { return String(uid++); }
+      /* Home feed sound: videos autoplay muted (browser rule), but one tap
+         on the speaker button turns sound on for the whole feed. */
+      var feedSoundOn = false;
 
       /* ---------- shared feed (Supabase) ----------
          To make the shared feed permanent for everyone, bake the
@@ -1344,7 +1359,7 @@ exception when duplicate_object then null; end $$;</textarea>
       function mediaHTML(p, opts) {
         opts = opts || {};
         if (p.mediaType === "video") {
-          return '<video src="' + p.url + '" ' + (opts.reel ? "" : "muted loop playsinline") + ' preload="metadata"></video>';
+          return '<video src="' + p.url + '" ' + (opts.reel ? "" : (feedSoundOn ? "loop playsinline" : "muted loop playsinline")) + ' preload="metadata"></video>';
         }
         return '<img src="' + p.url + '" alt="' + esc(p.caption || "Photo by " + postAuthor(p).username) + '" />';
       }
@@ -1362,6 +1377,7 @@ exception when duplicate_object then null; end $$;</textarea>
               : "") +
             '<button class="act-btn" data-menu="' + p.id + '" aria-label="Post options">' + IC.dots + "</button></div>" +
           '<div class="media-wrap" data-media="' + p.id + '">' + mediaHTML(p) +
+            (p.mediaType === "video" ? '<button class="sound-btn" data-sound="' + p.id + '" aria-label="Sound on/off">' + (feedSoundOn ? "🔊" : "🔇") + "</button>" : "") +
             '<div class="heart-pop" data-pop="' + p.id + '">' + IC.heartBig + "</div></div>" +
           '<div class="post-actions">' +
             '<button class="act-btn' + (p.liked ? " liked" : "") + '" data-like="' + p.id + '" aria-label="Like">' + IC.heart + "</button>" +
@@ -1463,6 +1479,18 @@ exception when duplicate_object then null; end $$;</textarea>
               if (v) { if (v.paused) v.play(); else v.pause(); }
             }
             lastTap = now;
+          });
+        });
+        $$("[data-sound]", root).forEach(function (el) {
+          el.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            feedSoundOn = !feedSoundOn;
+            $$("video", root).forEach(function (v) { v.muted = !feedSoundOn; });
+            $$("[data-sound]", root).forEach(function (b) { b.textContent = feedSoundOn ? "🔊" : "🔇"; });
+            var wrap = el.closest("[data-media]");
+            var v = wrap ? $("video", wrap) : null;
+            if (v && feedSoundOn && v.paused) { var pr = v.play(); if (pr) pr.catch(function () {}); }
+            toast(feedSoundOn ? "Sound on" : "Sound off");
           });
         });
       }
@@ -1837,20 +1865,21 @@ exception when duplicate_object then null; end $$;</textarea>
           var stFile = pendingFile.file, stType = pendingFile.mediaType, stUrl = pendingFile.url;
           var stAuthor = { username: state.user.username, name: state.user.name, avatar: null };
           if (sb.connected && stFile) {
-            var shBtn = $("#shareBtn");
-            shBtn.disabled = true; shBtn.style.opacity = ".55"; shBtn.textContent = "Sharing story with everyone…";
-            sbPublishStory(stFile, stType, stAuthor).then(function (story) {
+            /* Background upload: close at once, keep watching — % shows live. */
+            pendingFile = null;
+            closeSheet("createScrim");
+            switchView("home");
+            showUploadProgress("Story upload ho rahi hai…", 0);
+            sbPublishStory(stFile, stType, stAuthor, function (pct) { showUploadProgress(null, pct); }).then(function (story) {
               URL.revokeObjectURL(stUrl);
-              pendingFile = null;
+              hideUploadProgress();
               state.stories.unshift(story);
               renderStories();
               notify("Your story was shared with everyone.");
-              closeSheet("createScrim");
               toast("Story shared with everyone");
-              switchView("home");
             }).catch(function () {
-              shBtn.disabled = false; shBtn.style.opacity = "1"; shBtn.textContent = "Add to story";
-              toast("Could not reach the shared feed — check the connection and try again");
+              hideUploadProgress();
+              toast("Upload fail ho gaya — dobara try karo");
             });
             return;
           }
@@ -1867,20 +1896,22 @@ exception when duplicate_object then null; end $$;</textarea>
         var author = { username: state.user.username, name: state.user.name, avatar: null };
         if (sb.connected && pendingFile.file) {
           var sendFile = pendingFile.file, sendType = pendingFile.mediaType, sendUrl = pendingFile.url;
-          var sBtn = $("#shareBtn");
-          sBtn.disabled = true; sBtn.style.opacity = ".55"; sBtn.textContent = "Sharing with everyone…";
-          sbPublishPost(sendFile, sendType, kind, caption, author).then(function (post) {
+          /* Background upload: close the sheet at once and let the user
+             keep watching videos — the progress bar shows the % live. */
+          pendingFile = null;
+          closeSheet("createScrim");
+          switchView(kind === "reel" ? "reels" : "home");
+          showUploadProgress(kind === "reel" ? "Reel upload ho raha hai…" : "Post upload ho raha hai…", 0);
+          sbPublishPost(sendFile, sendType, kind, caption, author, function (pct) { showUploadProgress(null, pct); }).then(function (post) {
             URL.revokeObjectURL(sendUrl);
-            pendingFile = null;
+            hideUploadProgress();
             state.posts.unshift(post);
             refreshPostSurfaces();
             notify(kind === "reel" ? "Your reel was published to the shared feed." : "Your post was published to the shared feed.");
-            closeSheet("createScrim");
             toast(kind === "reel" ? "Reel shared with everyone" : "Post shared with everyone");
-            switchView(kind === "reel" ? "reels" : "home");
           }).catch(function () {
-            sBtn.disabled = false; sBtn.style.opacity = "1"; sBtn.textContent = "Share";
-            toast("Could not reach the shared feed — check the connection and try again");
+            hideUploadProgress();
+            toast("Upload fail ho gaya — dobara try karo");
           });
           return;
         }
@@ -2052,17 +2083,52 @@ exception when duplicate_object then null; end $$;</textarea>
           return false;
         });
       }
-      function sbPublishPost(file, mediaType, kind, caption, author) {
+      /* ---------- background upload with % progress ----------
+         fetch() cannot report upload progress, so file uploads go through
+         XMLHttpRequest, whose upload.onprogress gives real bytes. The
+         upload runs in the background — the create sheet closes at once and
+         the user can keep watching videos while it finishes. */
+      function sbUploadFile(path, file, onProgress) {
+        return new Promise(function (resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open("POST", sbBase() + "/storage/v1/object/media/" + path, true);
+          xhr.setRequestHeader("apikey", sb.key);
+          xhr.setRequestHeader("Authorization", "Bearer " + sb.key);
+          xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+          xhr.setRequestHeader("x-upsert", "true");
+          if (xhr.upload && onProgress) {
+            xhr.upload.onprogress = function (e) {
+              if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100));
+            };
+          }
+          xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else reject(new Error("upload " + xhr.status));
+          };
+          xhr.onerror = function () { reject(new Error("upload failed")); };
+          xhr.send(file);
+        });
+      }
+      function showUploadProgress(label, pct) {
+        var bar = $("#uploadBar");
+        if (!bar) return;
+        bar.hidden = false;
+        if (label) $("#uploadBarLabel").textContent = label;
+        if (typeof pct === "number") {
+          $("#uploadBarPct").textContent = pct + "%";
+          $("#uploadBarFill").style.width = pct + "%";
+        }
+      }
+      function hideUploadProgress() {
+        var bar = $("#uploadBar");
+        if (bar) bar.hidden = true;
+      }
+      function sbPublishPost(file, mediaType, kind, caption, author, onProgress) {
         var id = "p" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
         var rawExt = (file.name && file.name.split(".").pop()) || (mediaType === "video" ? "mp4" : "jpg");
         var ext = String(rawExt).replace(/[^a-z0-9]/gi, "").toLowerCase() || (mediaType === "video" ? "mp4" : "jpg");
         var path = "posts/" + id + "." + ext;
-        return fetch(sbBase() + "/storage/v1/object/media/" + path, {
-          method: "POST",
-          headers: { apikey: sb.key, Authorization: "Bearer " + sb.key, "Content-Type": file.type || "application/octet-stream", "x-upsert": "true" },
-          body: file
-        }).then(function (r) {
-          if (!r.ok) throw new Error("upload " + r.status);
+        return sbUploadFile(path, file, onProgress).then(function () {
           var url = sbBase() + "/storage/v1/object/public/media/" + path;
           var row = {
             id: id, kind: kind, media_type: mediaType, media_url: url, caption: caption,
@@ -2078,17 +2144,12 @@ exception when duplicate_object then null; end $$;</textarea>
             });
         });
       }
-      function sbPublishStory(file, mediaType, author) {
+      function sbPublishStory(file, mediaType, author, onProgress) {
         var id = "s" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
         var rawExt = (file.name && file.name.split(".").pop()) || (mediaType === "video" ? "mp4" : "jpg");
         var ext = String(rawExt).replace(/[^a-z0-9]/gi, "").toLowerCase() || (mediaType === "video" ? "mp4" : "jpg");
         var path = "stories/" + id + "." + ext;
-        return fetch(sbBase() + "/storage/v1/object/media/" + path, {
-          method: "POST",
-          headers: { apikey: sb.key, Authorization: "Bearer " + sb.key, "Content-Type": file.type || "application/octet-stream", "x-upsert": "true" },
-          body: file
-        }).then(function (r) {
-          if (!r.ok) throw new Error("upload " + r.status);
+        return sbUploadFile(path, file, onProgress).then(function () {
           var url = sbBase() + "/storage/v1/object/public/media/" + path;
           var row = {
             id: id, media_type: mediaType, media_url: url,
