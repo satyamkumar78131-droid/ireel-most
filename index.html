@@ -167,6 +167,12 @@
       .badge-fab:active{transform:scale(.92);}
       .badge-pick{display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:9px 6px; border-bottom:1px solid var(--border-soft); font-size:14px;}
       .badge-pick.sel{background:var(--field); border-radius:10px;}
+      /* ---------- Install app bar + update bar ---------- */
+      .install-bar{position:fixed; left:10px; right:10px; top:54px; z-index:120; display:flex; align-items:center; gap:10px; background:#111; color:#fff; border-radius:12px; padding:10px 12px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.3);}
+      .install-bar[hidden]{display:none;}
+      .install-bar .btn{padding:6px 14px; margin-left:auto; white-space:nowrap;}
+      .install-x{background:none; border:0; color:#fff; font-size:16px; padding:4px; cursor:pointer;}
+      #updateBar{top:100px;}
       /* ---------- Reel views + upload time ---------- */
       .rail-stat{pointer-events:none;}
       .reel-time{font-size:12px; opacity:.75; margin-top:2px;}
@@ -512,6 +518,14 @@
         <div class="ub-row"><span id="uploadBarLabel">Uploading…</span><span id="uploadBarPct">0%</span></div>
         <div class="ub-track"><div class="ub-fill" id="uploadBarFill"></div></div>
       </div>
+      <div class="install-bar" id="installBar" hidden>
+        <span>📲 App install karo — bina browser bar ke, full-screen chalega</span>
+        <button class="btn" id="installAppBtn">Install</button>
+        <button class="install-x" id="installDismiss" aria-label="Close">✕</button>
+      </div>
+      <div class="upload-bar" id="updateBar" hidden>
+        <div class="ub-row"><span>Naya version aa gaya hai — latest features ke liye reload karo</span><button class="btn" id="updateReloadBtn" style="padding:4px 12px;">Reload</button></div>
+      </div>
       <button class="badge-fab" id="badgeFab" hidden aria-label="Give badge">⚕️</button>
       <header>
         <div class="logo-wrap" id="headLogo">
@@ -636,6 +650,7 @@
             <button class="btn ghost" id="editProfileBtn">Edit profile</button>
             <button class="btn ghost" id="downloadBtnTop">Download app file</button>
             <button class="btn ghost" id="settingsBtn">Settings</button>
+            <button class="btn ghost" id="profileInstallBtn">Install app</button>
           </div>
           <div class="acct-card">
             <h3>My account</h3>
@@ -2303,6 +2318,7 @@ exception when duplicate_object then null; end $$;</textarea>
         var bar = $("#uploadBar");
         if (!bar) return;
         bar.hidden = false;
+        hideInstallBar();
         if (label) $("#uploadBarLabel").textContent = label;
         if (typeof pct === "number") {
           $("#uploadBarPct").textContent = pct + "%";
@@ -2870,6 +2886,50 @@ exception when duplicate_object then null; end $$;</textarea>
         } else location.reload();
       }
 
+      /* ---------- Install app (no browser bar) + always latest version ----------
+         The browser bar can only disappear when the app is INSTALLED (PWA/APK).
+         A website opened in a browser always shows its address bar — no code
+         can hide it. So the app itself asks every user to install it (one tap),
+         and it checks version.json so an open app never stays on an old version. */
+      var APP_VERSION = "2026-11-09-4";
+      var deferredInstallPrompt = null;
+      function isStandalone() {
+        return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
+      }
+      function showInstallBar() {
+        if (isStandalone()) return;
+        try { if (sessionStorage.getItem("ireel_install_dismissed")) return; } catch (e) {}
+        var b = $("#installBar");
+        if (b) b.hidden = false;
+      }
+      function hideInstallBar() { var b = $("#installBar"); if (b) b.hidden = true; }
+      function installApp() {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          if (deferredInstallPrompt.userChoice) {
+            deferredInstallPrompt.userChoice.then(function () { deferredInstallPrompt = null; hideInstallBar(); }).catch(function () {});
+          } else { deferredInstallPrompt = null; hideInstallBar(); }
+        } else {
+          toast("Chrome ke ⋮ menu → 'Add to Home screen' ya 'Install app' chuno");
+        }
+      }
+      function showUpdateBar() { var b = $("#updateBar"); if (b) b.hidden = false; }
+      function checkAppUpdate() {
+        fetch("version.json", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          if (j && j.v && j.v !== APP_VERSION) showUpdateBar();
+        }).catch(function () {});
+      }
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        showInstallBar();
+      });
+      window.addEventListener("appinstalled", function () {
+        deferredInstallPrompt = null;
+        hideInstallBar();
+        var pb = $("#profileInstallBtn"); if (pb) pb.style.display = "none";
+      });
+
       /* ---------- user profile view ---------- */
       function openUserProfile(username) {
         if (!username) return;
@@ -3113,6 +3173,7 @@ exception when duplicate_object then null; end $$;</textarea>
            upload chal raha ho, ya comment likh rahe ho to skip — taaki
            dekhne/likhne me rukawat na aaye. Scroll position bani rehti hai. */
         setInterval(function () {
+          checkAppUpdate();
           if (!sb.connected) return;
           if (document.querySelector(".scrim.open")) return;
           var ub = $("#uploadBar"); if (ub && !ub.hidden) return;
@@ -3311,6 +3372,16 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#clearHistoryBtn").addEventListener("click", function () { askConfirm("Clear watch history?", "Dekhi hui videos ki list saaf ho jayegi.", clearWatchHistory); });
         $("#confirmOk").addEventListener("click", function () { closeSheet("confirmScrim"); var f = pendingConfirmFn; pendingConfirmFn = null; if (f) f(); });
         $("#confirmNo").addEventListener("click", function () { pendingConfirmFn = null; closeSheet("confirmScrim"); });
+        /* Install app (one tap, no browser bar) + update check (always latest version) */
+        $("#installAppBtn").addEventListener("click", installApp);
+        $("#installDismiss").addEventListener("click", function () { try { sessionStorage.setItem("ireel_install_dismissed", "1"); } catch (e) {} hideInstallBar(); });
+        $("#profileInstallBtn").addEventListener("click", installApp);
+        $("#updateReloadBtn").addEventListener("click", function () { location.reload(); });
+        if (isStandalone()) { var pb2 = $("#profileInstallBtn"); if (pb2) pb2.style.display = "none"; }
+        if ("serviceWorker" in navigator) { navigator.serviceWorker.addEventListener("controllerchange", function () { showUpdateBar(); }); }
+        document.addEventListener("visibilitychange", function () { if (!document.hidden) checkAppUpdate(); });
+        showInstallBar();
+        checkAppUpdate();
         $$("#authSeg button").forEach(function (b) {
           b.addEventListener("click", function () { setAuthTab(b.getAttribute("data-auth-tab")); });
         });
