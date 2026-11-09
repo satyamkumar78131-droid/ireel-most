@@ -1,6 +1,8 @@
 /* ireel service worker — app shell ko cache karta hai taaki Chrome "Install" de sake.
-   Supabase (cross-origin) calls kabhi cache nahi hote — woh hamesha network se jaate hain. */
-var CACHE = "ireel-v1";
+   Supabase (cross-origin) calls kabhi cache nahi hote — woh hamesha network se jaate hain.
+   v2: app page (index.html) hamesha network se pehle — taaki naya version har phone
+   par turant pahunche, purana cached page kisi phone par atka na rahe. */
+var CACHE = "ireel-v2";
 var SHELL = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", function (e) {
@@ -20,6 +22,20 @@ self.addEventListener("activate", function (e) {
 
 self.addEventListener("fetch", function (e) {
   if (e.request.method !== "GET") return;
+  var isPage = e.request.mode === "navigate" || (e.request.headers.get("accept") || "").indexOf("text/html") !== -1;
+  if (isPage) {
+    /* App page: network first — naya version turant mile; offline ho to cache se. */
+    e.respondWith(
+      fetch(e.request).then(function (res) {
+        if (res && res.ok) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+        }
+        return res;
+      }).catch(function () { return caches.match(e.request); })
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(function (cached) {
       var net = fetch(e.request).then(function (res) {

@@ -2803,8 +2803,17 @@ exception when duplicate_object then null; end $$;</textarea>
         loadAccounts();
         var savedUser = "";
         try { savedUser = localStorage.getItem(CURRENT_KEY) || ""; } catch (e) {}
-        if (savedUser && accounts[savedUser]) {
-          var sa = accounts[savedUser];
+        /* Only restore a saved account that really signed in on THIS device.
+           The admin record is seeded in the code (no password, no token), so
+           a phone that only ever opened the app could have it saved as its
+           "current user" — restoring it would open the admin account there. */
+        var savedAcct = (savedUser && accounts[savedUser]) || null;
+        if (savedAcct && savedAcct.username === "satyamkumar" && !savedAcct.passHash && !savedAcct.accessToken && !savedAcct.refreshToken) {
+          savedAcct = null;
+          try { localStorage.removeItem(CURRENT_KEY); } catch (e) {}
+        }
+        if (savedAcct) {
+          var sa = savedAcct;
           state.user.name = sa.name || sa.username;
           state.user.username = sa.username;
           state.user.bio = sa.bio || "";
@@ -2824,7 +2833,7 @@ exception when duplicate_object then null; end $$;</textarea>
         /* Fresh device? Nobody has signed in here yet — the app must NOT
            silently open as the admin account. Force the login/signup
            choice so every person uses the app as themselves. */
-        if (!(savedUser && accounts[savedUser]) && !googleReturning) openAuth("choice");
+        if (!savedAcct && !googleReturning) openAuth("choice");
         syncMeToPeople();
         renderStories();
         renderFeed();
