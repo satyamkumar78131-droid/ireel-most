@@ -1105,11 +1105,14 @@ exception when duplicate_object then null; end $$;</textarea>
       var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
       var state = {
+        /* No default user: on a fresh device nobody is signed in yet, so
+           the profile must NOT show the admin account by itself. The real
+           account is set only by a saved sign-in (init) or a login. */
         user: {
-          name: "Satyam Kumar",
-          username: "satyamkumar",
+          name: "",
+          username: "",
           bio: "",
-          email: "satyamkumar78131@gmail.com",
+          email: "",
           avatar: null
         },
         posts: [],        // {id, kind:'post'|'reel', mediaType, url, caption, liked, likeCount, saved, comments:[{username,text}], ts, author:{username,name,avatar}, shared}
@@ -3128,7 +3131,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-5";
+      var APP_VERSION = "2026-11-10-6";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
@@ -3483,9 +3486,14 @@ exception when duplicate_object then null; end $$;</textarea>
         } catch (e) {}
         handleGoogleReturn();
         /* Fresh device? Nobody has signed in here yet — the app must NOT
-           silently open as the admin account. Force the login/signup
-           choice so every person uses the app as themselves. */
-        if (!savedAcct && !googleReturning) openAuth("choice");
+           silently open as the admin account. Clear any default user and
+           force the login/signup choice so every person uses the app as
+           themselves. */
+        if (!savedAcct && !googleReturning) {
+          state.user = { name: "", username: "", bio: "", email: "", avatar: null };
+          state.guest = true;
+          openAuth("choice");
+        }
         syncMeToPeople();
         renderStories();
         renderFeed();
