@@ -149,11 +149,33 @@
       .post-actions{display:flex; align-items:center; gap:16px; padding:9px 12px 4px;}
       .sound-btn{position:absolute; top:10px; right:10px; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; font-size:17px; display:grid; place-items:center; z-index:5; border:1px solid rgba(255,255,255,.25);}
       .sound-btn:active{transform:scale(.9);}
-      .speed-btn{position:absolute; top:10px; right:52px; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; font-size:12px; font-weight:700; display:grid; place-items:center; z-index:5; border:1px solid rgba(255,255,255,.25);}
-      .speed-btn:active{transform:scale(.9);}
+      /* ---------- Gesture controls + quality badge (v2026-11-10-11) ---------- */
+      .gesture-flash{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(.9); background:rgba(0,0,0,.65); color:#fff; font-weight:800; font-size:20px; padding:8px 16px; border-radius:24px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:6; white-space:nowrap;}
+      .gesture-flash.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
+      .speed-indicator{position:absolute; top:10px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.7); color:#fff; font-size:12px; font-weight:700; padding:5px 12px; border-radius:14px; z-index:6; pointer-events:none; white-space:nowrap;}
+      .speed-indicator[hidden]{display:none;}
+      .quality-badge{position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,.6); color:#fff; font-size:11px; font-weight:700; padding:3px 8px; border-radius:8px; z-index:5; pointer-events:none;}
+      /* Colourful video: a vibrant professional colour grade. Stacks with Vivid. */
+      body.colorful video{filter:saturate(1.4) contrast(1.15) brightness(1.05);}
+      body.colorful img{filter:saturate(1.3) contrast(1.1) brightness(1.03);}
+      body.vivid.colorful video{filter:saturate(1.6) contrast(1.2) brightness(1.05);}
+      body.vivid.colorful img{filter:saturate(1.45) contrast(1.12) brightness(1.03);}
       /* Vivid mode: colours pop like HDR, on every video and photo. */
       body.vivid video{filter:saturate(1.4) contrast(1.12) brightness(1.03);}
       body.vivid img{filter:saturate(1.25) contrast(1.05);}
+      /* ---------- Startup splash (v2026-11-10-11) ---------- */
+      .splash{position:fixed; inset:0; z-index:999; background:radial-gradient(120% 120% at 50% 20%, #1c1033 0%, #0b0b0f 60%); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; overflow:hidden; transition:opacity .45s ease;}
+      .splash.hide{opacity:0; pointer-events:none;}
+      .splash .s-logo{font-size:52px; font-weight:900; letter-spacing:1px; background:linear-gradient(90deg,#fa7e1e,#d62976,#962fbf,#fa7e1e); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:shineSweep 1.8s linear infinite;}
+      @keyframes shineSweep{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+      .splash .s-satya{position:relative; font-size:30px; font-weight:900; letter-spacing:8px; margin-top:14px; color:#fff; text-shadow:0 0 18px rgba(250,126,30,.8), 0 0 42px rgba(214,41,118,.6);}
+      .splash .s-satya .cut{position:absolute; inset:0; color:#ffe9c9; clip-path:inset(0 0 100% 0); animation:cutReveal .5s ease .9s forwards;}
+      @keyframes cutReveal{to{clip-path:inset(0 0 0 0);}}
+      .splash .s-blade{position:absolute; left:-30%; top:50%; width:160%; height:3px; background:linear-gradient(90deg,transparent,#fff,#ffd166,transparent); box-shadow:0 0 18px #ffd166, 0 0 40px rgba(255,209,102,.8); transform:rotate(-18deg) translateX(-120%); animation:bladeSlash .55s cubic-bezier(.6,0,.9,.4) .7s forwards;}
+      @keyframes bladeSlash{to{transform:rotate(-18deg) translateX(120%);}}
+      .splash .s-powered{margin-top:18px; font-size:12px; letter-spacing:4px; color:rgba(255,255,255,.75);}
+      .splash .s-dot{position:absolute; width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.8); animation:floatUp 2.4s ease-in infinite;}
+      @keyframes floatUp{0%{transform:translateY(0); opacity:0;}20%{opacity:.9;}100%{transform:translateY(-140px); opacity:0;}}
       /* ---------- Upload progress bar (background upload) ---------- */
       .upload-bar{position:fixed; top:54px; left:0; right:0; z-index:200; background:rgba(0,0,0,.88); color:#fff; padding:9px 14px 10px; font-size:13px; font-weight:600; box-shadow:0 4px 16px rgba(0,0,0,.35);}
       .upload-bar[hidden]{display:none;}
@@ -1057,6 +1079,14 @@ exception when duplicate_object then null; end $$;</textarea>
           <button class="btn ghost block" id="clearHistoryBtn" style="margin-top:8px;">Clear watch history</button>
           <button class="btn block" id="vividBtn" style="margin-top:8px;">Vivid colours: Off</button>
           <p class="dl-note">Videos aur photos zyada colourful aur HDR jaisi dikhengi — sabhi videos pe chalta hai.</p>
+          <h3 style="margin-top:14px;">Video quality</h3>
+          <button class="btn block" id="qualityBtn" style="margin-top:8px;">Default video quality: Auto (best available)</button>
+          <p class="dl-note">Har video ek hi file me hoti hai, isliye player hamesha original (best) quality chalata hai. Ye setting saved rehti hai; har reel pe badge me uski asli resolution (jaise 1080p) dikhti hai.</p>
+          <button class="btn block" id="colorfulBtn" style="margin-top:8px;">Colourful video: Off</button>
+          <p class="dl-note">Videos aur photos zyada vibrant aur professionally colour-graded dikhengi. Vivid ke saath bhi chal sakta hai.</p>
+          <h3 style="margin-top:14px;">Private Videos</h3>
+          <p class="dl-note">Hidden videos sirf is account aur is phone par dikhti hain — feed aur reels se chhup jati hain.</p>
+          <div id="privateList"></div>
           <h3 style="margin-top:14px;">Error details (English)</h3>
           <p class="dl-note">Agar app me koi problem aaye (video na chale, upload fail ho, feed na khule), to uski wajah yahan English me dikhegi. Screenshot bhej do to problem samajh me aayegi.</p>
           <div id="errLog" style="font-size:12px;line-height:1.5;max-height:180px;overflow:auto;background:#fff;border:1px solid #eee;border-radius:10px;padding:8px;"></div>
@@ -1095,6 +1125,17 @@ exception when duplicate_object then null; end $$;</textarea>
         </div>
       </div>
 
+      <!-- VIDEO INFO (v2026-11-10-11): URL, upload time, uploader, likes, views, resolution, ratio, post ID. Read-only. -->
+      <div class="scrim" id="infoScrim">
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>Video info</h3>
+          <div id="infoBody" style="font-size:14px; line-height:1.7;"></div>
+          <button class="btn block" id="infoCopyBtn" style="margin-top:12px;">Copy video link</button>
+          <button class="btn ghost block" id="infoClose" style="margin-top:8px;">Close</button>
+        </div>
+      </div>
+
       <!-- STORY VIEWER -->
       <div class="viewer" id="storyViewer">
         <div class="v-top">
@@ -1114,6 +1155,17 @@ exception when duplicate_object then null; end $$;</textarea>
         </div>
       </div>
 
+      <!-- STARTUP SPLASH (v2026-11-10-11): ireel logo + shining name + katana cut through SATYA. Dismissed by JS after ~2.5s or on tap; never blocks login. -->
+      <div class="splash" id="splash" aria-hidden="true">
+        <div class="s-logo">ireel</div>
+        <div class="s-satya">SATYA<span class="cut">SATYA</span><span class="s-blade"></span></div>
+        <div class="s-powered">POWERED BY SATYA</div>
+        <span class="s-dot" style="left:18%; bottom:22%; animation-delay:.2s;"></span>
+        <span class="s-dot" style="left:32%; bottom:16%; animation-delay:.9s;"></span>
+        <span class="s-dot" style="left:64%; bottom:24%; animation-delay:.5s;"></span>
+        <span class="s-dot" style="left:78%; bottom:18%; animation-delay:1.2s;"></span>
+        <span class="s-dot" style="left:50%; bottom:12%; animation-delay:1.6s;"></span>
+      </div>
       <div class="toast" id="toast"></div>
       <input type="file" id="mediaInput" accept="image/*,video/*" multiple hidden />
       <input type="file" id="storyInput" accept="image/*,video/*" hidden />
@@ -1588,7 +1640,7 @@ exception when duplicate_object then null; end $$;</textarea>
       function mediaHTML(p, opts) {
         opts = opts || {};
         if (p.mediaType === "video") {
-          return '<video src="' + p.url + '" ' + (opts.reel ? "" : (feedSoundOn ? "loop playsinline" : "muted loop playsinline")) + ' preload="metadata"></video>';
+          return '<video src="' + p.url + '" crossorigin="anonymous" ' + (opts.reel ? "" : (feedSoundOn ? "loop playsinline" : "muted loop playsinline")) + ' preload="metadata"></video>';
         }
         return '<img src="' + p.url + '" alt="' + esc(p.caption || "Photo by " + postAuthor(p).username) + '" />';
       }
@@ -1599,16 +1651,373 @@ exception when duplicate_object then null; end $$;</textarea>
         if (r !== "9:16" && r !== "1:1" && r !== "4:5" && r !== "16:9") return "";
         return " ratio-" + r.replace(":", "-");
       }
+      /* ---------- v2026-11-10-11 helpers: quality badge, gestures, URLs, info, hide, splash ----------
+         Quality badge: reads the video's REAL resolution once its metadata
+         loads (portrait videos use their width, e.g. 1080x1920 = "1080p"). */
+      function qualityLabel(v) {
+        try {
+          var w = v.videoWidth || 0, h = v.videoHeight || 0;
+          if (!w || !h) return "—";
+          return (w > h ? h : w) + "p";
+        } catch (e) { return "—"; }
+      }
+      function updateQualityBadge(v, id) {
+        if (!id) return;
+        var label = qualityLabel(v);
+        var p = findPost(id);
+        if (p && label !== "—") p._res = label;
+        $$('[data-qbadge="' + id + '"]').forEach(function (b) { b.textContent = label; });
+      }
+      /* On-screen flash for gesture feedback (±5s, speed changes). */
+      function gestureFlash(v, text) {
+        try {
+          var wrap = v.closest(".media-wrap") || v.closest(".reel-slide") || v.parentElement;
+          if (!wrap) return;
+          var f = wrap.querySelector(".gesture-flash");
+          if (!f) { f = document.createElement("div"); f.className = "gesture-flash"; wrap.appendChild(f); }
+          f.textContent = text;
+          f.classList.add("show");
+          clearTimeout(f._t);
+          f._t = setTimeout(function () { f.classList.remove("show"); }, 750);
+        } catch (e) {}
+      }
+      function showSpeedIndicator(v, rate) {
+        try {
+          var wrap = v.closest(".media-wrap") || v.closest(".reel-slide") || v.parentElement;
+          if (!wrap) return;
+          var el = wrap.querySelector(".speed-indicator");
+          if (!el) { el = document.createElement("div"); el.className = "speed-indicator"; el.hidden = true; wrap.appendChild(el); }
+          el.textContent = "Speed: " + (rate === 1 ? "1×" : rate + "×") + "  •  left = slower, right = faster";
+          el.hidden = false;
+        } catch (e) {}
+      }
+      function hideSpeedIndicator(v) {
+        try {
+          var wrap = v.closest(".media-wrap") || v.closest(".reel-slide") || v.parentElement;
+          var el = wrap ? wrap.querySelector(".speed-indicator") : null;
+          if (el) el.hidden = true;
+        } catch (e) {}
+      }
+      /* ---------- gesture video controls (feature 5) + two-finger screenshot (feature 7) ----------
+         One gesture layer on every feed/reel video:
+         - long-press (>=1s) enters speed mode; left/right taps change speed (0.5–2x);
+           speed mode exits after 3s with no tap, on a second long-press, or on scroll away.
+         - double-tap left/right third seeks ∓5s (handled by the click handlers);
+           centre double-tap keeps double-tap-to-like in the feed (reels have no
+           double-tap-to-like, so centre double-tap just toggles play/pause there).
+         - two fingers held + swipe up (feed only) screenshots the current frame.
+         The layer swallows the click a gesture produces, so play/pause and
+         double-tap-like never fire by accident. A touch that moves >12px is a
+         scroll, never a gesture. */
+      var GESTURE_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+      function suppressNextClick(v) {
+        v._gestureSuppressClick = true;
+        setTimeout(function () { v._gestureSuppressClick = false; }, 1500);
+      }
+      function attachVideoGestures(v, getId, isFeed) {
+        if (!v || v._gesturesAttached) return;
+        v._gesturesAttached = true;
+        var pointers = {};
+        var lpTimer = null, speedExitTimer = null;
+        v._speedMode = false;
+        function clearLp() { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } }
+        function exitSpeedMode() {
+          v._speedMode = false;
+          hideSpeedIndicator(v);
+          if (speedExitTimer) { clearTimeout(speedExitTimer); speedExitTimer = null; }
+        }
+        function resetSpeedExit() {
+          if (speedExitTimer) clearTimeout(speedExitTimer);
+          speedExitTimer = setTimeout(exitSpeedMode, 3000);
+        }
+        function enterSpeedMode() {
+          v._speedMode = true;
+          suppressNextClick(v);
+          showSpeedIndicator(v, v.playbackRate || 1);
+          resetSpeedExit();
+        }
+        function adjustSpeed(dir) {
+          var rates = GESTURE_SPEEDS;
+          var idx = rates.indexOf(v.playbackRate || 1);
+          if (idx < 0) idx = 2;
+          var next = rates[Math.max(0, Math.min(rates.length - 1, idx + dir))];
+          v.playbackRate = next;
+          showSpeedIndicator(v, next);
+          gestureFlash(v, (next === 1 ? "1×" : next + "×"));
+          resetSpeedExit();
+        }
+        v.addEventListener("pointerdown", function (ev) {
+          try {
+            pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY, t: Date.now() };
+            var ids = Object.keys(pointers);
+            if (ids.length === 2 && isFeed) {
+              clearLp();
+              v._twoFingerStartY = (pointers[ids[0]].y + pointers[ids[1]].y) / 2;
+              v._twoFingerDone = false;
+            } else if (ids.length === 1) {
+              clearLp();
+              lpTimer = setTimeout(function () {
+                lpTimer = null;
+                var p0 = pointers[ev.pointerId];
+                if (p0 && Math.abs(p0.x - p0.sx) < 12 && Math.abs(p0.y - p0.sy) < 12) {
+                  if (v._speedMode) exitSpeedMode(); else enterSpeedMode();
+                }
+              }, 1000);
+            }
+          } catch (e) {}
+        });
+        v.addEventListener("pointermove", function (ev) {
+          try {
+            var pt = pointers[ev.pointerId];
+            if (!pt) return;
+            pt.x = ev.clientX; pt.y = ev.clientY;
+            var ids = Object.keys(pointers);
+            if (ids.length === 2 && isFeed && !v._twoFingerDone) {
+              var a = pointers[ids[0]], b = pointers[ids[1]];
+              var dy = ((a.y + b.y) / 2) - (v._twoFingerStartY || 0);
+              if (dy < -60) {
+                v._twoFingerDone = true;
+                suppressNextClick(v);
+                captureVideoFrame(v, getId);
+              }
+            } else if (ids.length === 1) {
+              if (Math.abs(pt.x - pt.sx) > 12 || Math.abs(pt.y - pt.sy) > 12) clearLp();
+            }
+          } catch (e) {}
+        });
+        function endPointer(ev) {
+          try {
+            var pt = pointers[ev.pointerId];
+            delete pointers[ev.pointerId];
+            clearLp();
+            if (!pt) return;
+            if (Math.abs(pt.x - pt.sx) > 12 || Math.abs(pt.y - pt.sy) > 12) { v._gestureSuppressClick = false; return; }
+            if (v._speedMode && Date.now() - pt.t < 1000) {
+              var rect = v.getBoundingClientRect();
+              adjustSpeed(pt.x < rect.left + rect.width / 2 ? -1 : 1);
+              suppressNextClick(v);
+            }
+          } catch (e) {}
+        }
+        v.addEventListener("pointerup", endPointer);
+        v.addEventListener("pointercancel", function (ev) { try { delete pointers[ev.pointerId]; clearLp(); } catch (e) {} });
+        /* Swallow the click a gesture produces, so the feed/reel tap
+           handlers never see it. Capture phase: runs before the wrapper's
+           bubble listener in the feed, and (registered first) before the
+           tap handler on the same video in reels. */
+        v.addEventListener("click", function (ev) {
+          if (v._gestureSuppressClick) {
+            v._gestureSuppressClick = false;
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
+          }
+        }, true);
+      }
+      /* Two-finger screenshot (feature 7): draw the current frame at its
+         original resolution and download it as PNG. Needs CORS-clean video
+         (crossorigin="anonymous" on the tags); Supabase storage sends
+         Access-Control-Allow-Origin: *, so the canvas stays untainted. */
+      function captureVideoFrame(v, getId) {
+        try {
+          var w = v.videoWidth, h = v.videoHeight;
+          if (!w || !h) { toast("Screenshot failed — try again"); return; }
+          var c = document.createElement("canvas");
+          c.width = w; c.height = h;
+          c.getContext("2d").drawImage(v, 0, 0, w, h);
+          c.toBlob(function (blob) {
+            if (!blob) { toast("Screenshot failed — try again"); return; }
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "ireel-frame-" + (getId ? getId() : "video") + "-" + Math.round(v.currentTime) + "s.png";
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+            toast("Screenshot saved");
+          }, "image/png");
+        } catch (e) {
+          try { logError("screenshot", "Screenshot failed: " + (e && e.message ? e.message : "canvas tainted")); } catch (e2) {}
+          toast("Screenshot failed — try again");
+        }
+      }
+      /* ---------- shareable video URLs (feature 3) ----------
+         Every video has one unique link: <site>/?post=<postId>. Opening it
+         after login scrolls to that video (or opens it in Reels). */
+      function postUrl(id) { return "https://satyamkumar78131-droid.github.io/ireel-most/?post=" + encodeURIComponent(id); }
+      function copyText(text, okMsg) {
+        function done() { toast(okMsg || "Copied"); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+        } else { fallbackCopy(text); done(); }
+      }
+      var pendingDeepLink = null;
+      function handleDeepLink() {
+        if (!pendingDeepLink) return;
+        var p = findPost(pendingDeepLink);
+        if (!p) {
+          if (sb.connected && sb.lastLoad > 0) { toast("Video not found"); pendingDeepLink = null; }
+          return;
+        }
+        var id = pendingDeepLink;
+        switchView("home");
+        setTimeout(function () {
+          var el = document.querySelector('[data-post="' + id + '"]');
+          if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); pendingDeepLink = null; return; }
+          if (p.mediaType === "video") {
+            switchView("reels");
+            setTimeout(function () {
+              var slide = document.querySelector('[data-slide="' + id + '"]');
+              if (slide) { slide.scrollIntoView({ behavior: "smooth" }); pendingDeepLink = null; }
+              else if (sb.connected && sb.lastLoad > 0) { toast("Video not found"); pendingDeepLink = null; }
+            }, 300);
+          } else if (sb.connected && sb.lastLoad > 0) { toast("Video not found"); pendingDeepLink = null; }
+        }, 150);
+      }
+      /* ---------- video info dialog (feature 4) ---------- */
+      var infoPostId = null;
+      function openInfoDialog(id) {
+        var p = findPost(id); if (!p) return;
+        infoPostId = id;
+        var a = postAuthor(p);
+        var when = "—";
+        try { var d = new Date(p.ts || 0); if (d.getTime()) when = d.toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch (e) {}
+        var url = postUrl(id);
+        var rows = [
+          ["Video URL", '<span style="overflow-wrap:anywhere;">' + esc(url) + "</span>"],
+          ["Uploaded", esc(when)],
+          ["Uploader", esc(a.username) + (a.name && a.name !== a.username ? " (" + esc(a.name) + ")" : "")],
+          ["Likes", String(p.likeCount || 0)],
+          ["Views", String(p.views || 0)],
+          ["Resolution", esc(p._res || "—")],
+          ["Ratio", esc(p.ratio || "original")],
+          ["Post ID", esc(String(id))]
+        ];
+        $("#infoBody").innerHTML = rows.map(function (r) {
+          return '<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--border-soft);"><span style="width:96px;flex:none;color:var(--text-2);">' + r[0] + '</span><span style="flex:1;">' + r[1] + "</span></div>";
+        }).join("");
+        openSheet("infoScrim");
+      }
+      /* ---------- private / hide video (feature 2B) ----------
+         Hidden state is per-account on THIS device (localStorage), not
+         server-side — the video stays in the shared feed for everyone else. */
+      var hiddenPosts = {};
+      function hiddenKey() { return "ireel_hidden_" + ((state.user && state.user.username) || "satyamkumar"); }
+      function loadHiddenPosts() {
+        try { hiddenPosts = JSON.parse(localStorage.getItem(hiddenKey()) || "{}") || {}; } catch (e) { hiddenPosts = {}; }
+      }
+      function saveHiddenPosts() { try { localStorage.setItem(hiddenKey(), JSON.stringify(hiddenPosts)); } catch (e) {} }
+      function isHidden(id) { return !!hiddenPosts[String(id)]; }
+      function toggleHidePost(id) {
+        var p = findPost(id); if (!p) return;
+        if (isHidden(id)) { delete hiddenPosts[String(id)]; toast("Video unhidden — feed me wapas aa gaya"); }
+        else { hiddenPosts[String(id)] = true; toast("Video hidden — Private Videos me milega"); }
+        saveHiddenPosts();
+        refreshPostSurfaces();
+        renderPrivateList();
+      }
+      function renderPrivateList() {
+        var list = $("#privateList"); if (!list) return;
+        var ids = Object.keys(hiddenPosts);
+        if (!ids.length) { list.innerHTML = '<p class="dl-note">Koi hidden video nahi hai.</p>'; return; }
+        list.innerHTML = ids.map(function (id) {
+          var p = findPost(id);
+          if (!p) return "";
+          var thumb = p.mediaType === "video"
+            ? '<video src="' + p.url + '" preload="metadata" muted playsinline style="width:64px;height:64px;object-fit:cover;border-radius:10px;"></video>'
+            : '<img src="' + p.url + '" style="width:64px;height:64px;object-fit:cover;border-radius:10px;" />';
+          return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-soft);">' + thumb +
+            '<div style="flex:1;font-size:13px;overflow:hidden;"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(p.caption || (p.mediaType === "video" ? "Video" : "Photo")) + '</div><div style="color:var(--text-2);font-size:12px;">' + timeAgo(p.ts) + "</div></div>" +
+            '<button class="btn ghost" data-unhide="' + esc(String(id)) + '" style="padding:6px 12px;">Unhide</button></div>';
+        }).join("");
+        $$("[data-unhide]", list).forEach(function (el) {
+          el.addEventListener("click", function () { toggleHidePost(el.getAttribute("data-unhide")); });
+        });
+      }
+      /* ---------- video quality (feature 2A) + colourful video (feature 6) ----------
+         HONEST LIMIT: each uploaded video is stored as ONE file, so there are
+         no separate 4K/720p/480p copies to switch between — the player always
+         plays the original file at its full uploaded quality (best available).
+         This setting is saved and shown; the badge on each reel shows the
+         video's true resolution. */
+      var QUALITY_OPTS = ["Auto (best available)", "1080p", "720p", "480p"];
+      var videoQuality = "Auto (best available)";
+      try { var _q = localStorage.getItem("ireel_quality_v1"); if (_q && QUALITY_OPTS.indexOf(_q) !== -1) videoQuality = _q; } catch (e) {}
+      function applyQuality() {
+        var b = $("#qualityBtn");
+        if (b) b.textContent = "Default video quality: " + videoQuality;
+      }
+      var colorfulOn = false;
+      try { colorfulOn = localStorage.getItem("ireel_colorful_v1") === "1"; } catch (e) {}
+      function applyColorful() {
+        try { document.body.classList.toggle("colorful", !!colorfulOn); } catch (e) {}
+        var b = $("#colorfulBtn");
+        if (b) b.textContent = "Colourful video: " + (colorfulOn ? "On" : "Off");
+      }
+      /* ---------- startup splash (feature 2C) ----------
+         ireel logo + shining name + katana cut through SATYA, with a
+         synthesized whoosh + chime (WebAudio, no audio file). Shows once on
+         load, dismisses after ~2.5s or on tap. Never blocks the login gate:
+         everything is wrapped in try/catch and the overlay is force-removed
+         after 3s no matter what. */
+      function playSplashSfx() {
+        try {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          var ctx = new AC();
+          if (ctx.state === "suspended") ctx.resume().catch(function () {});
+          var dur = 0.6, buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+          var data = buf.getChannelData(0);
+          for (var i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+          var src = ctx.createBufferSource(); src.buffer = buf;
+          var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.2;
+          bp.frequency.setValueAtTime(3200, ctx.currentTime);
+          bp.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + dur);
+          var g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.08);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+          src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+          src.start();
+          [880, 1318.5].forEach(function (f, i) {
+            var o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f;
+            var og = ctx.createGain();
+            var t0 = ctx.currentTime + 0.9 + i * 0.12;
+            og.gain.setValueAtTime(0.0001, t0);
+            og.gain.exponentialRampToValueAtTime(0.12, t0 + 0.02);
+            og.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.9);
+            o.connect(og); og.connect(ctx.destination);
+            o.start(t0); o.stop(t0 + 1);
+          });
+        } catch (e) {}
+      }
+      function showSplash() {
+        try {
+          var s = $("#splash");
+          if (!s) return;
+          var done = false;
+          function dismiss() {
+            if (done) return; done = true;
+            s.classList.add("hide");
+            setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 500);
+          }
+          s.addEventListener("click", dismiss);
+          playSplashSfx();
+          setTimeout(dismiss, 2500);
+          setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 3000);
+        } catch (e) {
+          try { var s2 = $("#splash"); if (s2 && s2.parentNode) s2.parentNode.removeChild(s2); } catch (e2) {}
+        }
+      }
       function postCardHTML(p) {
         var a = postAuthor(p);
         var comments = p.comments.map(function (c) {
           return '<div class="comment"><span class="uname">' + esc(c.username) + badgeHTML(c.username) + "</span>" + esc(c.text) + "</div>";
         }).join("");
-        /* Likes + views + upload time, shown under every video. Likes are
-           hidden when the owner hid the like count; views always show. */
+        /* Likes + upload time, shown under every video. Likes are hidden
+           when the owner hid the like count. Views are NOT shown here any
+           more — they are still counted in the background (recordWatch)
+           and shown in the Info dialog. */
         var metaParts = [];
         if (!p.hideLikes && p.likeCount > 0) metaParts.push(p.likeCount + (p.likeCount === 1 ? " like" : " likes"));
-        if (p.mediaType === "video") metaParts.push('<span data-views="' + p.id + '">' + (p.views || 0) + "</span> views");
         var metaLine = metaParts.length ? '<div class="likes-line">' + metaParts.join(" · ") + "</div>" : "";
         return '<article class="post" data-post="' + p.id + '">' +
           '<div class="post-head"><span data-user="' + esc(a.username) + '">' + authorAvatarHTML(a, 34) + "</span>" +
@@ -1620,12 +2029,13 @@ exception when duplicate_object then null; end $$;</textarea>
             '<button class="act-btn" data-menu="' + p.id + '" aria-label="Post options">' + IC.dots + "</button></div>" +
           '<div class="media-wrap' + ratioClass(p) + '" data-media="' + p.id + '">' + mediaHTML(p) +
             (p.mediaType === "video" ? '<button class="sound-btn" data-sound="' + p.id + '" aria-label="Sound on/off">' + (feedSoundOn ? "🔊" : "🔇") + "</button>" : "") +
-            (p.mediaType === "video" ? '<button class="speed-btn" data-speed="' + p.id + '" aria-label="Playback speed">1×</button>' : "") +
+            (p.mediaType === "video" ? '<span class="quality-badge" data-qbadge="' + p.id + '">…</span>' : "") +
             '<div class="heart-pop" data-pop="' + p.id + '">' + IC.heartBig + "</div></div>" +
           '<div class="post-actions">' +
             '<button class="act-btn' + (p.liked ? " liked" : "") + '" data-like="' + p.id + '" aria-label="Like">' + IC.heart + "</button>" +
             (p.commentsOff ? "" : '<button class="act-btn" data-comment="' + p.id + '" aria-label="Comment">' + IC.comment + "</button>") +
             '<button class="act-btn" data-share="' + p.id + '" aria-label="Share">' + IC.share + "</button>" +
+            (p.mediaType === "video" ? '<button class="act-btn" data-finfo="' + p.id + '" aria-label="Video info" style="font-size:18px; font-weight:800;">ⓘ</button>' : "") +
             '<span class="spacer"></span>' +
             '<button class="act-btn' + (p.saved ? " saved" : "") + '" data-save="' + p.id + '" aria-label="Save">' + IC.save + "</button></div>" +
           metaLine +
@@ -1642,14 +2052,18 @@ exception when duplicate_object then null; end $$;</textarea>
       }
       function renderFeed() {
         var feed = $("#feed");
-        if (!state.posts.length) {
-          var emptyCopy = sb.connected
-            ? "<h2>Welcome to the shared feed</h2><p>Nobody has posted yet. Post your first photo or video and everyone on ireel will see it here.</p>"
-            : "<h2>Welcome to ireel</h2><p>Your feed is empty. Post your first photo or video and it will appear right here.</p>";
+        /* Hidden (private) videos never render in this account's feed. */
+        var visible = state.posts.filter(function (p) { return !isHidden(p.id); });
+        if (!visible.length) {
+          var emptyCopy = state.posts.length
+            ? "<h2>All videos are hidden</h2><p>Is account ki videos hidden hain — Settings → Private Videos me unhide karo.</p>"
+            : (sb.connected
+              ? "<h2>Welcome to the shared feed</h2><p>Nobody has posted yet. Post your first photo or video and everyone on ireel will see it here.</p>"
+              : "<h2>Welcome to ireel</h2><p>Your feed is empty. Post your first photo or video and it will appear right here.</p>");
           feed.innerHTML = '<div class="empty"><div class="e-icon">' + IC.camera + "</div>" + emptyCopy +
             '<button class="btn" data-act="create-post">Create your first post</button></div>';
         } else {
-          feed.innerHTML = state.posts.map(postCardHTML).join("");
+          feed.innerHTML = visible.map(postCardHTML).join("");
         }
         bindPostEvents(feed);
         observeFeedVideos(feed);
@@ -1686,6 +2100,9 @@ exception when duplicate_object then null; end $$;</textarea>
         $$("[data-share]", root).forEach(function (el) {
           el.addEventListener("click", function () { openShareSheet(el.getAttribute("data-share")); });
         });
+        $$("[data-finfo]", root).forEach(function (el) {
+          el.addEventListener("click", function () { openInfoDialog(el.getAttribute("data-finfo")); });
+        });
         $$("[data-menu]", root).forEach(function (el) {
           el.addEventListener("click", function () { openMenuSheet(el.getAttribute("data-menu")); });
         });
@@ -1707,26 +2124,44 @@ exception when duplicate_object then null; end $$;</textarea>
             toast("Comment posted");
           });
         });
+        /* Tap zones (feature 5): single tap (250ms wait) toggles play/pause;
+           double-tap left third = −5s, right third = +5s, centre = like
+           (the old double-tap-to-like, preserved). The 250ms wait is what
+           lets a double-tap seek instead of toggling play/pause first. */
         $$("[data-media]", root).forEach(function (el) {
-          var lastTap = 0;
-          el.addEventListener("click", function () {
-            var now = Date.now();
+          var tapTimer = null;
+          el.addEventListener("click", function (ev) {
             var id = el.getAttribute("data-media");
             var p = findPost(id);
-            if (now - lastTap < 320) {
-              var pop = $('[data-pop="' + id + '"]', el.parentElement) || $('[data-pop="' + id + '"]', el);
-              if (pop) { pop.classList.remove("go"); void pop.offsetWidth; pop.classList.add("go"); }
-              if (p && !p.liked) toggleLike(id, true);
-            } else if (p && p.mediaType === "video") {
-              var v = $("video", el);
-              if (v) {
-                if (v.paused) {
-                  $$("video", root).forEach(function (x) { if (x !== v) x.pause(); });
-                  v.play();
-                } else v.pause();
+            var v = $("video", el);
+            /* Clicks that belong to a gesture (long-press release, speed-mode
+               tap, two-finger screenshot) are swallowed by the video's own
+               gesture layer before they reach here. */
+            if (v && v._gestureSuppressClick) { v._gestureSuppressClick = false; return; }
+            if (v && v._speedMode) return;
+            var rect = el.getBoundingClientRect();
+            var x = (ev.clientX || (rect.left + rect.width / 2)) - rect.left;
+            var zone = x < rect.width / 3 ? "left" : (x > rect.width * 2 / 3 ? "right" : "center");
+            if (tapTimer) {
+              clearTimeout(tapTimer); tapTimer = null;
+              if (zone === "left" && p && p.mediaType === "video" && v) { v.currentTime = Math.max(0, v.currentTime - 5); gestureFlash(v, "−5s"); }
+              else if (zone === "right" && p && p.mediaType === "video" && v) { v.currentTime = Math.min(v.duration || Infinity, v.currentTime + 5); gestureFlash(v, "+5s"); }
+              else {
+                var pop = $('[data-pop="' + id + '"]', el.parentElement) || $('[data-pop="' + id + '"]', el);
+                if (pop) { pop.classList.remove("go"); void pop.offsetWidth; pop.classList.add("go"); }
+                if (p && !p.liked) toggleLike(id, true);
               }
+            } else {
+              tapTimer = setTimeout(function () {
+                tapTimer = null;
+                if (p && p.mediaType === "video" && v) {
+                  if (v.paused) {
+                    $$("video", root).forEach(function (x) { if (x !== v) x.pause(); });
+                    var pr = v.play(); if (pr) pr.catch(function () {});
+                  } else v.pause();
+                }
+              }, 250);
             }
-            lastTap = now;
           });
         });
         $$("[data-sound]", root).forEach(function (el) {
@@ -1741,21 +2176,8 @@ exception when duplicate_object then null; end $$;</textarea>
             toast(feedSoundOn ? "Sound on" : "Sound off");
           });
         });
-        /* Playback speed: 1x → 1.25x → 1.5x → 2x → 0.5x → 1x, per video. */
-        $$("[data-speed]", root).forEach(function (el) {
-          el.addEventListener("click", function (ev) {
-            ev.stopPropagation();
-            var wrap = el.closest("[data-media]");
-            var v = wrap ? $("video", wrap) : null;
-            if (!v) return;
-            var rates = [1, 1.25, 1.5, 2, 0.5];
-            var idx = rates.indexOf(v.playbackRate || 1);
-            var next = rates[(idx + 1) % rates.length];
-            v.playbackRate = next;
-            el.textContent = (next === 1 ? "1×" : next + "×");
-            toast("Speed " + next + "×");
-          });
-        });
+        /* Speed button removed (v2026-11-10-11): speed is now gesture-based —
+           long-press the video for 1s, then tap left/right. See attachVideoGestures. */
       }
       var feedObserver = null;
       function observeFeedVideos(root) {
@@ -1782,6 +2204,13 @@ exception when duplicate_object then null; end $$;</textarea>
             logError("video", mediaErrText(v) + (src ? " File: " + src : ""));
           });
           attachWatchTracker(v, function () { var w = v.closest("[data-media]"); return w ? w.getAttribute("data-media") : null; });
+          /* True resolution badge + gesture controls (v2026-11-10-11). */
+          v.addEventListener("loadedmetadata", function () {
+            var w = v.closest("[data-media]");
+            updateQualityBadge(v, w ? w.getAttribute("data-media") : null);
+          });
+          (function () { var w = v.closest("[data-media]"); updateQualityBadge(v, w ? w.getAttribute("data-media") : null); })();
+          attachVideoGestures(v, function () { var w = v.closest("[data-media]"); return w ? w.getAttribute("data-media") : null; }, true);
         });
       }
       function toggleLike(id, silent) {
@@ -1895,21 +2324,21 @@ exception when duplicate_object then null; end $$;</textarea>
 
       /* ---------- reels ---------- */
       function renderReels() {
-        var reels = state.posts.filter(function (p) { return p.mediaType === "video"; });
+        var reels = state.posts.filter(function (p) { return p.mediaType === "video" && !isHidden(p.id); });
         var track = $("#reelsTrack");
         $("#reelsEmpty").style.display = reels.length ? "none" : "flex";
         track.style.display = reels.length ? "block" : "none";
         track.innerHTML = reels.map(function (p) {
           return '<div class="reel-slide" data-slide="' + p.id + '">' +
-            '<video src="' + p.url + '" loop playsinline preload="metadata"></video>' +
+            '<video src="' + p.url + '" crossorigin="anonymous" loop playsinline preload="metadata"></video>' +
+            '<span class="quality-badge" data-qbadge="' + p.id + '">…</span>' +
             '<div class="reel-progress"><i data-progress="' + p.id + '"></i></div>' +
             '<div class="reel-rail">' +
               '<button class="rail-btn' + (p.liked ? " liked" : "") + '" data-rlike="' + p.id + '">' + '<span class="bubble">' + IC.heart + "</span>" + (p.hideLikes ? "" : p.likeCount) + "</button>" +
-              '<span class="rail-btn rail-stat"><span class="bubble">👁️</span><span data-rviews="' + p.id + '">' + (p.views || 0) + "</span></span>" +
+              '<button class="rail-btn" data-rinfo="' + p.id + '"><span class="bubble">ⓘ</span>Info</button>' +
               (p.commentsOff ? "" : '<button class="rail-btn" data-rcomment="' + p.id + '"><span class="bubble">' + IC.comment + "</span>" + p.comments.length + "</button>") +
               '<button class="rail-btn" data-rshare="' + p.id + '"><span class="bubble">' + IC.share + "</span>Share</button>" +
               '<button class="rail-btn' + (p.saved ? " saved" : "") + '" data-rsave="' + p.id + '"><span class="bubble">' + IC.save + "</span>Save</button>" +
-              '<button class="rail-btn" data-rspeed="' + p.id + '"><span class="bubble">1×</span>Speed</button>' +
               '<button class="rail-btn" data-rsound="' + p.id + '"><span class="bubble">🔇</span>Sound</button>' +
             "</div>" +
             '<div class="reel-meta"><div class="uname"><span data-user="' + esc(postAuthor(p).username) + '">' + authorAvatarHTML(postAuthor(p), 32) + "</span><span data-user=\"" + esc(postAuthor(p).username) + "\">" + esc(postAuthor(p).username) + "</span>" + badgeHTML(postAuthor(p).username) +
@@ -1932,20 +2361,8 @@ exception when duplicate_object then null; end $$;</textarea>
         $$("[data-rsave]", track).forEach(function (el) {
           el.addEventListener("click", function () { toggleSave(el.getAttribute("data-rsave")); });
         });
-        $$("[data-rspeed]", track).forEach(function (el) {
-          el.addEventListener("click", function () {
-            var slide = el.closest("[data-slide]");
-            var v = slide ? $("video", slide) : null;
-            if (!v) return;
-            var rates = [1, 1.25, 1.5, 2, 0.5];
-            var idx = rates.indexOf(v.playbackRate || 1);
-            var next = rates[(idx + 1) % rates.length];
-            v.playbackRate = next;
-            var b = el.querySelector(".bubble");
-            if (b) b.textContent = (next === 1 ? "1×" : next + "×");
-            toast("Speed " + next + "×");
-          });
-        });
+        /* Speed rail button removed (v2026-11-10-11): speed is now gesture-based —
+           long-press the reel for 1s, then tap left/right. See attachVideoGestures. */
         $$("[data-rsound]", track).forEach(function (el) {
           el.addEventListener("click", function () {
             var slide = el.closest("[data-slide]");
@@ -1961,6 +2378,9 @@ exception when duplicate_object then null; end $$;</textarea>
         $$("[data-rshare]", track).forEach(function (el) {
           el.addEventListener("click", function () { openShareSheet(el.getAttribute("data-rshare")); });
         });
+        $$("[data-rinfo]", track).forEach(function (el) {
+          el.addEventListener("click", function () { openInfoDialog(el.getAttribute("data-rinfo")); });
+        });
         $$("[data-rcomment]", track).forEach(function (el) {
           el.addEventListener("click", function () {
             var id = el.getAttribute("data-rcomment");
@@ -1971,7 +2391,36 @@ exception when duplicate_object then null; end $$;</textarea>
           });
         });
         $$(".reel-slide video", track).forEach(function (v) {
-          v.addEventListener("click", function () { if (v.paused) v.play(); else v.pause(); });
+          /* Gesture layer first (its capture click listener must run before
+             the tap handler below, so it can swallow gesture clicks). */
+          attachVideoGestures(v, function () { var s = v.closest(".reel-slide"); return s ? s.getAttribute("data-slide") : null; }, false);
+          v.addEventListener("loadedmetadata", function () {
+            var s = v.closest(".reel-slide");
+            updateQualityBadge(v, s ? s.getAttribute("data-slide") : null);
+          });
+          (function () { var s = v.closest(".reel-slide"); updateQualityBadge(v, s ? s.getAttribute("data-slide") : null); })();
+          /* Tap = play/pause (250ms wait, so a double-tap can seek instead).
+             Double-tap left third = −5s, right third = +5s, centre = play/pause.
+             (Reels have no double-tap-to-like, so centre double-tap just toggles.) */
+          var tapTimer = null;
+          v.addEventListener("click", function (ev) {
+            if (v._gestureSuppressClick) { v._gestureSuppressClick = false; return; }
+            if (v._speedMode) return;
+            var rect = v.getBoundingClientRect();
+            var x = (ev.clientX || (rect.left + rect.width / 2)) - rect.left;
+            var zone = x < rect.width / 3 ? "left" : (x > rect.width * 2 / 3 ? "right" : "center");
+            if (tapTimer) {
+              clearTimeout(tapTimer); tapTimer = null;
+              if (zone === "left") { v.currentTime = Math.max(0, v.currentTime - 5); gestureFlash(v, "−5s"); }
+              else if (zone === "right") { v.currentTime = Math.min(v.duration || Infinity, v.currentTime + 5); gestureFlash(v, "+5s"); }
+              else if (v.paused) v.play(); else v.pause();
+            } else {
+              tapTimer = setTimeout(function () {
+                tapTimer = null;
+                if (v.paused) v.play(); else v.pause();
+              }, 250);
+            }
+          });
           v.addEventListener("error", function () {
             var src = "";
             try { src = (v.currentSrc || v.src || "").split("/").slice(-2).join("/"); } catch (e) {}
@@ -2140,6 +2589,7 @@ exception when duplicate_object then null; end $$;</textarea>
         sheetRows([
           { icon: IC.download, label: "Download " + (p.mediaType === "video" ? "video" : "photo"), fn: function () { downloadMedia(p); } },
           { icon: IC.copy, label: "Copy caption", fn: function () { copyCaption(p); } },
+          { icon: IC.copy, label: "Copy video link", fn: function () { copyText(postUrl(id), "Link copied"); } },
           { icon: IC.save, label: p.saved ? "Remove from saved" : "Save post", fn: function () { toggleSave(id); } }
         ]);
       }
@@ -2153,6 +2603,7 @@ exception when duplicate_object then null; end $$;</textarea>
         if (postAuthor(p).username === state.user.username) {
           rows.push({ icon: IC.heart, label: p.hideLikes ? "Show like count" : "Hide like count", fn: function () { setPostFlag(id, "hideLikes", !p.hideLikes); } });
           rows.push({ icon: IC.comment, label: p.commentsOff ? "Turn on commenting" : "Turn off commenting", fn: function () { setPostFlag(id, "commentsOff", !p.commentsOff); } });
+          rows.push({ icon: IC.save, label: isHidden(id) ? "Unhide video" : "Hide video", fn: function () { toggleHidePost(id); } });
           rows.push({ icon: IC.trash, label: "Delete post", danger: true, fn: function () { deletePost(id); } });
         }
         sheetRows(rows);
@@ -2482,6 +2933,7 @@ exception when duplicate_object then null; end $$;</textarea>
           }
           sb.lastLoad = Date.now();
           refreshPostSurfaces();
+          handleDeepLink();
           renderStories();
           renderSharedStatus();
           loadMessages(false);
@@ -2895,12 +3347,17 @@ exception when duplicate_object then null; end $$;</textarea>
         syncMeToPeople();
         loadMyLikesSaves(acct.username);
         loadWatchHistory(acct.username);
+        loadHiddenPosts();
         /* Notifications belong to the signed-in account — never show the
            previous account's notifications after a switch. */
         state.notifications = [];
         updateBadgeFab();
+        /* Badge management is admin-only: if we just switched away from
+           the admin, close the badge picker if it is open. */
+        if (acct.username !== "satyamkumar") closeSheet("badgeScrim");
         loadLastSeenMsg();
         renderStories(); renderFeed(); renderExplore(); renderReels(); renderNotifications(); renderProfile(); renderConversations();
+        handleDeepLink();
       }
       function switchToAccount(username) {
         var acct = accounts[username];
@@ -3242,7 +3699,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-10";
+      var APP_VERSION = "2026-11-10-11";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
@@ -3564,8 +4021,10 @@ exception when duplicate_object then null; end $$;</textarea>
 
       /* ---------- wiring ---------- */
       function init() {
+        showSplash();
         /* restore the accounts saved on this device + the last signed-in account */
         loadAccounts();
+        try { pendingDeepLink = new URLSearchParams(location.search).get("post") || null; } catch (e) {}
         var savedUser = "";
         try { savedUser = localStorage.getItem(CURRENT_KEY) || ""; } catch (e) {}
         /* Only restore a saved account that really signed in on THIS device.
@@ -3590,6 +4049,7 @@ exception when duplicate_object then null; end $$;</textarea>
         }
         loadMyLikesSaves(state.user.username);
         loadWatchHistory(state.user.username);
+        loadHiddenPosts();
         var googleReturning = false;
         try {
           var _rq = new URLSearchParams(location.search);
@@ -3620,6 +4080,9 @@ exception when duplicate_object then null; end $$;</textarea>
         }
         updateBadgeFab();
         applyVivid();
+        applyQuality();
+        applyColorful();
+        handleDeepLink();
         /* Auto-refresh: poora shared feed har 2 minute me refresh hota hai,
            taaki nayi posts bina Refresh dabaye aa jayein. Sheet khuli ho,
            upload chal raha ho, ya comment likh rahe ho to skip — taaki
@@ -3647,6 +4110,23 @@ exception when duplicate_object then null; end $$;</textarea>
             else switchView(nav);
           });
         });
+        /* Double-tap Home / ireel logo = refresh feed (feature 1a). */
+        (function () {
+          var lastHomeTap = 0;
+          function homeDblTap() {
+            var now = Date.now();
+            if (now - lastHomeTap < 350) {
+              lastHomeTap = 0;
+              if (sb.connected) loadSharedFeed(false).catch(function () {});
+              else renderFeed();
+              toast("Feed refreshed");
+            } else lastHomeTap = now;
+          }
+          var homeBtn = document.querySelector('#bottomNav [data-nav="home"]');
+          if (homeBtn) homeBtn.addEventListener("click", homeDblTap);
+          var logo = $("#headLogo");
+          if (logo) logo.addEventListener("click", homeDblTap);
+        })();
         $("#headCreateBtn").addEventListener("click", function () { openCreate("post"); });
         $("#headNotifBtn").addEventListener("click", function () { switchView("notifications"); });
         $("#headMsgBtn").addEventListener("click", function () { switchView("messages"); });
@@ -3821,7 +4301,7 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#badgeClose").addEventListener("click", function () { closeSheet("badgeScrim"); });
         /* Settings: clear cache / clear data / clear watch history (all with in-app OK confirm) */
         $("#loginGateBtn").addEventListener("click", function () { openAuth("choice"); });
-        $("#settingsBtn").addEventListener("click", function () { renderErrLog(); openSheet("settingsScrim"); });
+        $("#settingsBtn").addEventListener("click", function () { renderErrLog(); renderPrivateList(); openSheet("settingsScrim"); });
         $("#clearErrBtn").addEventListener("click", function () {
           try { localStorage.removeItem(ERR_KEY); } catch (e) {}
           renderErrLog();
@@ -3848,6 +4328,21 @@ exception when duplicate_object then null; end $$;</textarea>
           applyVivid();
           toast(vividOn ? "Vivid colours on — videos zyada colourful dikhengi" : "Vivid colours off");
         });
+        $("#qualityBtn").addEventListener("click", function () {
+          var i = QUALITY_OPTS.indexOf(videoQuality);
+          videoQuality = QUALITY_OPTS[(i + 1) % QUALITY_OPTS.length];
+          try { localStorage.setItem("ireel_quality_v1", videoQuality); } catch (e) {}
+          applyQuality();
+          toast("Default video quality: " + videoQuality + " — videos hamesha original (best) quality me chalengi");
+        });
+        $("#colorfulBtn").addEventListener("click", function () {
+          colorfulOn = !colorfulOn;
+          try { localStorage.setItem("ireel_colorful_v1", colorfulOn ? "1" : "0"); } catch (e) {}
+          applyColorful();
+          toast(colorfulOn ? "Colourful video on — videos zyada vibrant dikhengi" : "Colourful video off");
+        });
+        $("#infoClose").addEventListener("click", function () { closeSheet("infoScrim"); });
+        $("#infoCopyBtn").addEventListener("click", function () { if (infoPostId) copyText(postUrl(infoPostId), "Link copied"); });
         $("#confirmOk").addEventListener("click", function () { closeSheet("confirmScrim"); var f = pendingConfirmFn; pendingConfirmFn = null; if (f) f(); });
         $("#confirmNo").addEventListener("click", function () { pendingConfirmFn = null; closeSheet("confirmScrim"); });
         /* Install app (one tap, no browser bar) + update check (always latest version) */
