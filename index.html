@@ -1901,7 +1901,7 @@ exception when duplicate_object then null; end $$;</textarea>
         track.style.display = reels.length ? "block" : "none";
         track.innerHTML = reels.map(function (p) {
           return '<div class="reel-slide" data-slide="' + p.id + '">' +
-            '<video src="' + p.url + '" loop playsinline preload="metadata"></video>' +
+            '<video src="' + p.url + '" loop playsinline preload="metadata" muted></video>' +
             '<div class="reel-progress"><i data-progress="' + p.id + '"></i></div>' +
             '<div class="reel-rail">' +
               '<button class="rail-btn' + (p.liked ? " liked" : "") + '" data-rlike="' + p.id + '">' + '<span class="bubble">' + IC.heart + "</span>" + (p.hideLikes ? "" : p.likeCount) + "</button>" +
@@ -1910,6 +1910,7 @@ exception when duplicate_object then null; end $$;</textarea>
               '<button class="rail-btn" data-rshare="' + p.id + '"><span class="bubble">' + IC.share + "</span>Share</button>" +
               '<button class="rail-btn' + (p.saved ? " saved" : "") + '" data-rsave="' + p.id + '"><span class="bubble">' + IC.save + "</span>Save</button>" +
               '<button class="rail-btn" data-rspeed="' + p.id + '"><span class="bubble">1×</span>Speed</button>' +
+              '<button class="rail-btn" data-rsound="' + p.id + '"><span class="bubble">🔇</span>Sound</button>' +
             "</div>" +
             '<div class="reel-meta"><div class="uname"><span data-user="' + esc(postAuthor(p).username) + '">' + authorAvatarHTML(postAuthor(p), 32) + "</span><span data-user=\"" + esc(postAuthor(p).username) + "\">" + esc(postAuthor(p).username) + "</span>" + badgeHTML(postAuthor(p).username) +
             (postAuthor(p).username !== state.user.username
@@ -1943,6 +1944,18 @@ exception when duplicate_object then null; end $$;</textarea>
             var b = el.querySelector(".bubble");
             if (b) b.textContent = (next === 1 ? "1×" : next + "×");
             toast("Speed " + next + "×");
+          });
+        });
+        $$("[data-rsound]", track).forEach(function (el) {
+          el.addEventListener("click", function () {
+            var slide = el.closest("[data-slide]");
+            var v = slide ? $("video", slide) : null;
+            if (!v) return;
+            v.muted = !v.muted;
+            var b = el.querySelector(".bubble");
+            if (b) b.textContent = v.muted ? "🔇" : "🔊";
+            if (!v.muted) { v.play().catch(function () {}); }
+            toast(v.muted ? "Sound off" : "Sound on");
           });
         });
         $$("[data-rshare]", track).forEach(function (el) {
@@ -3158,7 +3171,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-7";
+      var APP_VERSION = "2026-11-10-8";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
