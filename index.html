@@ -654,6 +654,7 @@
             <button class="btn ghost" id="downloadBtnTop">Download app file</button>
             <button class="btn ghost" id="settingsBtn">Settings</button>
             <button class="btn ghost" id="profileInstallBtn">Install app</button>
+            <a class="btn ghost" href="ireel.apk" download style="text-decoration:none; text-align:center;">Download APK</a>
           </div>
           <div class="acct-card">
             <h3>My account</h3>
@@ -988,6 +989,8 @@ exception when duplicate_object then null; end $$;</textarea>
             <div id="switchList"></div>
             <p class="dl-note">Accounts you created or logged into on this device appear here. Tap ✕ to remove an account from this device — its posts and messages stay on the shared feed.</p>
           </div>
+          <a class="btn ghost block" href="ireel.apk" download style="margin-top:10px; text-align:center; text-decoration:none;">📲 Download ireel app (APK)</a>
+          <p class="dl-note" style="text-align:center;">Bilkul Instagram jaisa — icon se khulta hai, koi browser bar nahi. Kahi bhi download karo, hamesha latest version.</p>
           <button class="btn ghost block" id="authClose" style="margin-top:10px;">Close</button>
         </div>
       </div>
@@ -2894,7 +2897,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-09-5";
+      var APP_VERSION = "2026-11-10-1";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
