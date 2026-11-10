@@ -766,7 +766,7 @@
           <h3>Create new post</h3>
           <div class="pick-zone" id="pickZone">
             <strong>Select photo or video</strong>
-            <span>from your phone gallery</span>
+            <span>from your phone gallery — ek saath kai files bhi chun sakte ho</span>
           </div>
           <div class="preview-media" id="previewMedia"></div>
           <div class="field">
@@ -1115,7 +1115,7 @@ exception when duplicate_object then null; end $$;</textarea>
       </div>
 
       <div class="toast" id="toast"></div>
-      <input type="file" id="mediaInput" accept="image/*,video/*" hidden />
+      <input type="file" id="mediaInput" accept="image/*,video/*" multiple hidden />
       <input type="file" id="storyInput" accept="image/*,video/*" hidden />
       <input type="file" id="avatarInput" accept="image/*" hidden />
     </div>
@@ -1901,7 +1901,7 @@ exception when duplicate_object then null; end $$;</textarea>
         track.style.display = reels.length ? "block" : "none";
         track.innerHTML = reels.map(function (p) {
           return '<div class="reel-slide" data-slide="' + p.id + '">' +
-            '<video src="' + p.url + '" loop playsinline preload="metadata" muted></video>' +
+            '<video src="' + p.url + '" loop playsinline preload="metadata"></video>' +
             '<div class="reel-progress"><i data-progress="' + p.id + '"></i></div>' +
             '<div class="reel-rail">' +
               '<button class="rail-btn' + (p.liked ? " liked" : "") + '" data-rlike="' + p.id + '">' + '<span class="bubble">' + IC.heart + "</span>" + (p.hideLikes ? "" : p.likeCount) + "</button>" +
@@ -1995,10 +1995,24 @@ exception when duplicate_object then null; end $$;</textarea>
           entries.forEach(function (e) {
             var v = $("video", e.target);
             if (!v) return;
-            if (e.intersectionRatio > 0.6) { var pr = v.play(); if (pr) pr.catch(function () {}); }
+            if (e.intersectionRatio > 0.6) {
+              // Try with sound first; if the browser blocks autoplay-with-sound, fall back to muted so the video still plays.
+              var pr = v.play();
+              if (pr) pr.catch(function () {
+                v.muted = true;
+                var pr2 = v.play(); if (pr2) pr2.catch(function () {});
+                syncReelSoundIcon(e.target, v);
+              });
+              syncReelSoundIcon(e.target, v);
+            }
             else { v.pause(); }
           });
         }, { root: $("#reelsTrack"), threshold: [0.6] });
+      function syncReelSoundIcon(slide, v) {
+        var btn = slide ? $("[data-rsound]", slide) : null;
+        var b = btn ? btn.querySelector(".bubble") : null;
+        if (b) b.textContent = v.muted ? "🔇" : "🔊";
+      }
         $$(".reel-slide").forEach(function (s) { reelObserver.observe(s); });
       }
       function pauseAllReels() {
@@ -2167,10 +2181,11 @@ exception when duplicate_object then null; end $$;</textarea>
       }
 
       /* ---------- create ---------- */
-      var pendingFile = null, pendingType = "post", pendingRatio = "original";
+      var pendingFile = null, pendingType = "post", pendingRatio = "original", pendingFiles = [];
       function openCreate(type) {
         pendingType = type || "post";
         pendingFile = null;
+        pendingFiles = [];
         pendingRatio = "original";
         $("#previewMedia").style.display = "none";
         $("#previewMedia").innerHTML = "";
@@ -2194,21 +2209,29 @@ exception when duplicate_object then null; end $$;</textarea>
         var ok = !!pendingFile;
         btn.disabled = !ok;
         btn.style.opacity = ok ? "1" : ".45";
-        btn.textContent = pendingType === "story" ? "Add to story" : "Share";
+        if (pendingType === "story") btn.textContent = "Add to story";
+        else btn.textContent = pendingFiles.length > 1 ? "Share (" + pendingFiles.length + ")" : "Share";
       }
-      function setPendingFile(file) {
-        if (!file) return;
-        if (pendingFile && pendingFile.url) URL.revokeObjectURL(pendingFile.url);
-        var url = URL.createObjectURL(file);
-        var mediaType = file.type.indexOf("video") === 0 ? "video" : "image";
-        pendingFile = { url: url, mediaType: mediaType, file: file };
+      function setPendingFiles(files) {
+        if (!files || !files.length) return;
+        pendingFiles = [];
+        for (var i = 0; i < files.length; i++) {
+          var f = files[i];
+          var url = URL.createObjectURL(f);
+          var mediaType = f.type.indexOf("video") === 0 ? "video" : "image";
+          pendingFiles.push({ url: url, mediaType: mediaType, file: f });
+        }
+        pendingFile = pendingFiles[0];
         var pm = $("#previewMedia");
-        pm.innerHTML = mediaType === "video"
-          ? '<video src="' + url + '" controls playsinline></video>'
-          : '<img src="' + url + '" alt="Selected photo preview" />';
+        pm.innerHTML = pendingFile.mediaType === "video"
+          ? '<video src="' + pendingFile.url + '" controls playsinline></video>'
+          : '<img src="' + pendingFile.url + '" alt="Selected photo preview" />';
+        if (pendingFiles.length > 1) {
+          pm.innerHTML += '<p class="dl-note" style="text-align:center; margin-top:6px;">' + pendingFiles.length + ' files selected — same caption sab pe lagega, ek ke baad ek upload honge</p>';
+        }
         pm.style.display = "block";
         $("#pickZone").style.display = "none";
-        if (mediaType === "video" && pendingType === "post") { pendingType = "reel"; updateTypeSeg(); }
+        if (pendingFile.mediaType === "video" && pendingType === "post") { pendingType = "reel"; updateTypeSeg(); }
         updateShareBtn();
       }
       function doShare() {
@@ -2247,6 +2270,38 @@ exception when duplicate_object then null; end $$;</textarea>
         }
         var kind = pendingType === "reel" ? "reel" : "post";
         var author = { username: state.user.username, name: state.user.name, avatar: null };
+        if (sb.connected && pendingFiles.length > 1) {
+          /* Bulk upload: files go one after another in the background — the
+             user keeps watching while the queue uploads. Same caption on all. */
+          var queue = pendingFiles.slice();
+          var total = queue.length, done = 0, failed = 0;
+          pendingFiles = []; pendingFile = null;
+          closeSheet("createScrim");
+          switchView(kind === "reel" ? "reels" : "home");
+          var upLabel = function () { return (kind === "reel" ? "Reel" : "Post") + " upload ho raha hai… " + done + "/" + total; };
+          showUploadProgress(upLabel(), 0);
+          var nextInQueue = function () {
+            if (!queue.length) {
+              hideUploadProgress();
+              if (failed) toast(done + " shared, " + failed + " fail ho gaye — dobara try karo");
+              else toast(total + " " + (kind === "reel" ? "reels" : "posts") + " shared with everyone");
+              return;
+            }
+            var item = queue.shift();
+            sbPublishPost(item.file, item.mediaType, kind, caption, author, function (pct) { showUploadProgress(upLabel(), pct); }, pendingRatio).then(function (post) {
+              URL.revokeObjectURL(item.url);
+              done++;
+              state.posts.unshift(post);
+              refreshPostSurfaces();
+              nextInQueue();
+            }).catch(function () {
+              failed++;
+              nextInQueue();
+            });
+          };
+          nextInQueue();
+          return;
+        }
         if (sb.connected && pendingFile.file) {
           var sendFile = pendingFile.file, sendType = pendingFile.mediaType, sendUrl = pendingFile.url;
           /* Background upload: close the sheet at once and let the user
@@ -2562,25 +2617,41 @@ exception when duplicate_object then null; end $$;</textarea>
          upload runs in the background — the create sheet closes at once and
          the user can keep watching videos while it finishes. */
       function sbUploadFile(path, file, onProgress) {
-        return new Promise(function (resolve, reject) {
-          var xhr = new XMLHttpRequest();
-          xhr.open("POST", sbBase() + "/storage/v1/object/media/" + path, true);
-          xhr.setRequestHeader("apikey", sb.key);
-          xhr.setRequestHeader("Authorization", "Bearer " + sb.key);
-          xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-          xhr.setRequestHeader("x-upsert", "true");
-          if (xhr.upload && onProgress) {
-            xhr.upload.onprogress = function (e) {
-              if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100));
+        /* Auto-retry: a flaky connection no longer kills the upload — it
+           retries up to 3 times before giving up. (True byte-level resume
+           needs chunked/tus upload — not built yet.) */
+        var attempts = 0;
+        function attempt() {
+          attempts++;
+          return new Promise(function (resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", sbBase() + "/storage/v1/object/media/" + path, true);
+            xhr.setRequestHeader("apikey", sb.key);
+            xhr.setRequestHeader("Authorization", "Bearer " + sb.key);
+            xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+            xhr.setRequestHeader("x-upsert", "true");
+            if (xhr.upload && onProgress) {
+              xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100));
+              };
+            }
+            xhr.onload = function () {
+              if (xhr.status >= 200 && xhr.status < 300) resolve();
+              else reject(new Error("upload " + xhr.status));
             };
-          }
-          xhr.onload = function () {
-            if (xhr.status >= 200 && xhr.status < 300) resolve();
-            else { logError("upload", "Upload failed: server returned HTTP " + xhr.status + "."); reject(new Error("upload " + xhr.status)); }
-          };
-          xhr.onerror = function () { logError("upload", "Upload failed: network error — check internet connection."); reject(new Error("upload failed")); };
-          xhr.send(file);
-        });
+            xhr.onerror = function () { reject(new Error("upload failed")); };
+            xhr.send(file);
+          }).catch(function (err) {
+            if (attempts < 3) {
+              if (onProgress) onProgress(0);
+              logError("upload", "Upload failed (" + err.message + ") — retry " + attempts + "/3.");
+              return new Promise(function (res) { setTimeout(res, 2000); }).then(attempt);
+            }
+            logError("upload", "Upload failed: server returned HTTP " + err.message.replace("upload ", "") + " after 3 tries.");
+            throw err;
+          });
+        }
+        return attempt();
       }
       function showUploadProgress(label, pct) {
         var bar = $("#uploadBar");
@@ -3171,7 +3242,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-8";
+      var APP_VERSION = "2026-11-10-10";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
@@ -3596,7 +3667,7 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#pickZone").addEventListener("click", function () { $("#mediaInput").click(); });
         $("#previewMedia").addEventListener("click", function () { $("#mediaInput").click(); });
         $("#mediaInput").addEventListener("change", function (e) {
-          setPendingFile(e.target.files && e.target.files[0]);
+          setPendingFiles(e.target.files);
           e.target.value = "";
         });
         $$("#typeSeg button").forEach(function (b) {
