@@ -149,6 +149,11 @@
       .post-actions{display:flex; align-items:center; gap:16px; padding:9px 12px 4px;}
       .sound-btn{position:absolute; top:10px; right:10px; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; font-size:17px; display:grid; place-items:center; z-index:5; border:1px solid rgba(255,255,255,.25);}
       .sound-btn:active{transform:scale(.9);}
+      .speed-btn{position:absolute; top:10px; right:52px; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; font-size:12px; font-weight:700; display:grid; place-items:center; z-index:5; border:1px solid rgba(255,255,255,.25);}
+      .speed-btn:active{transform:scale(.9);}
+      /* Vivid mode: colours pop like HDR, on every video and photo. */
+      body.vivid video{filter:saturate(1.4) contrast(1.12) brightness(1.03);}
+      body.vivid img{filter:saturate(1.25) contrast(1.05);}
       /* ---------- Upload progress bar (background upload) ---------- */
       .upload-bar{position:fixed; top:54px; left:0; right:0; z-index:200; background:rgba(0,0,0,.88); color:#fff; padding:9px 14px 10px; font-size:13px; font-weight:600; box-shadow:0 4px 16px rgba(0,0,0,.35);}
       .upload-bar[hidden]{display:none;}
@@ -1030,6 +1035,8 @@ exception when duplicate_object then null; end $$;</textarea>
           <button class="btn block" id="clearDataBtn" style="background:var(--danger);">Clear data</button>
           <p class="dl-note">Is phone ka saara ireel data saaf karta hai — accounts, likes, history sab. Uske baad login screen aayegi.</p>
           <button class="btn ghost block" id="clearHistoryBtn" style="margin-top:8px;">Clear watch history</button>
+          <button class="btn block" id="vividBtn" style="margin-top:8px;">Vivid colours: Off</button>
+          <p class="dl-note">Videos aur photos zyada colourful aur HDR jaisi dikhengi — sabhi videos pe chalta hai.</p>
           <button class="btn ghost block" id="settingsClose" style="margin-top:8px;">Close</button>
         </div>
       </div>
@@ -1113,6 +1120,15 @@ exception when duplicate_object then null; end $$;</textarea>
       /* Home feed sound: videos autoplay muted (browser rule), but one tap
          on the speaker button turns sound on for the whole feed. */
       var feedSoundOn = false;
+      /* Vivid colours: makes videos and photos look more colourful, like
+         HDR. Saved per phone, applied to every video and photo. */
+      var vividOn = false;
+      try { vividOn = localStorage.getItem("ireel_vivid_v1") === "1"; } catch (e) {}
+      function applyVivid() {
+        try { document.body.classList.toggle("vivid", !!vividOn); } catch (e) {}
+        var b = $("#vividBtn");
+        if (b) b.textContent = "Vivid colours: " + (vividOn ? "On" : "Off");
+      }
 
       /* ---------- shared feed (Supabase) ----------
          To make the shared feed permanent for everyone, bake the
@@ -1543,6 +1559,7 @@ exception when duplicate_object then null; end $$;</textarea>
             '<button class="act-btn" data-menu="' + p.id + '" aria-label="Post options">' + IC.dots + "</button></div>" +
           '<div class="media-wrap' + ratioClass(p) + '" data-media="' + p.id + '">' + mediaHTML(p) +
             (p.mediaType === "video" ? '<button class="sound-btn" data-sound="' + p.id + '" aria-label="Sound on/off">' + (feedSoundOn ? "🔊" : "🔇") + "</button>" : "") +
+            (p.mediaType === "video" ? '<button class="speed-btn" data-speed="' + p.id + '" aria-label="Playback speed">1×</button>' : "") +
             '<div class="heart-pop" data-pop="' + p.id + '">' + IC.heartBig + "</div></div>" +
           '<div class="post-actions">' +
             '<button class="act-btn' + (p.liked ? " liked" : "") + '" data-like="' + p.id + '" aria-label="Like">' + IC.heart + "</button>" +
@@ -1656,6 +1673,21 @@ exception when duplicate_object then null; end $$;</textarea>
             var v = wrap ? $("video", wrap) : null;
             if (v && feedSoundOn && v.paused) { var pr = v.play(); if (pr) pr.catch(function () {}); }
             toast(feedSoundOn ? "Sound on" : "Sound off");
+          });
+        });
+        /* Playback speed: 1x → 1.25x → 1.5x → 2x → 0.5x → 1x, per video. */
+        $$("[data-speed]", root).forEach(function (el) {
+          el.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            var wrap = el.closest("[data-media]");
+            var v = wrap ? $("video", wrap) : null;
+            if (!v) return;
+            var rates = [1, 1.25, 1.5, 2, 0.5];
+            var idx = rates.indexOf(v.playbackRate || 1);
+            var next = rates[(idx + 1) % rates.length];
+            v.playbackRate = next;
+            el.textContent = (next === 1 ? "1×" : next + "×");
+            toast("Speed " + next + "×");
           });
         });
       }
@@ -1799,6 +1831,7 @@ exception when duplicate_object then null; end $$;</textarea>
               (p.commentsOff ? "" : '<button class="rail-btn" data-rcomment="' + p.id + '"><span class="bubble">' + IC.comment + "</span>" + p.comments.length + "</button>") +
               '<button class="rail-btn" data-rshare="' + p.id + '"><span class="bubble">' + IC.share + "</span>Share</button>" +
               '<button class="rail-btn' + (p.saved ? " saved" : "") + '" data-rsave="' + p.id + '"><span class="bubble">' + IC.save + "</span>Save</button>" +
+              '<button class="rail-btn" data-rspeed="' + p.id + '"><span class="bubble">1×</span>Speed</button>' +
             "</div>" +
             '<div class="reel-meta"><div class="uname"><span data-user="' + esc(postAuthor(p).username) + '">' + authorAvatarHTML(postAuthor(p), 32) + "</span><span data-user=\"" + esc(postAuthor(p).username) + "\">" + esc(postAuthor(p).username) + "</span>" + badgeHTML(postAuthor(p).username) +
             (postAuthor(p).username !== state.user.username
@@ -1819,6 +1852,20 @@ exception when duplicate_object then null; end $$;</textarea>
         });
         $$("[data-rsave]", track).forEach(function (el) {
           el.addEventListener("click", function () { toggleSave(el.getAttribute("data-rsave")); });
+        });
+        $$("[data-rspeed]", track).forEach(function (el) {
+          el.addEventListener("click", function () {
+            var slide = el.closest("[data-slide]");
+            var v = slide ? $("video", slide) : null;
+            if (!v) return;
+            var rates = [1, 1.25, 1.5, 2, 0.5];
+            var idx = rates.indexOf(v.playbackRate || 1);
+            var next = rates[(idx + 1) % rates.length];
+            v.playbackRate = next;
+            var b = el.querySelector(".bubble");
+            if (b) b.textContent = (next === 1 ? "1×" : next + "×");
+            toast("Speed " + next + "×");
+          });
         });
         $$("[data-rshare]", track).forEach(function (el) {
           el.addEventListener("click", function () { openShareSheet(el.getAttribute("data-rshare")); });
@@ -2294,6 +2341,123 @@ exception when duplicate_object then null; end $$;</textarea>
           return false;
         });
       }
+      /* ---------- fast upload: compress big videos before upload ----------
+         A 1080p/4K video can take 5+ minutes to upload. Compressing it to
+         720p (~2.5 Mbps) makes the file 3-5x smaller, so the upload is 3-5x
+         faster. Only videos over 25 MB are compressed; small ones upload
+         as-is. The source frame rate is kept (the canvas is redrawn once
+         per video frame, so a 12fps or 240fps video keeps its fps) and
+         audio is kept via an AudioContext stream (so it never plays out
+         loud while compressing). If compression is unavailable or fails,
+         the original file uploads instead — never a silent video. */
+      var COMPRESS_MIN_BYTES = 25 * 1024 * 1024;
+      function compressVideo(file, onProgress) {
+        return new Promise(function (resolve, reject) {
+          if (!window.MediaRecorder) return reject(new Error("no recorder"));
+          /* Create the AudioContext right away (still inside the Share tap's
+             user activation) so its resume is allowed. */
+          var actx = null;
+          try {
+            var AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) { actx = new AC(); if (actx.state === "suspended" && actx.resume) actx.resume().catch(function () {}); }
+          } catch (e) { actx = null; }
+          var url = URL.createObjectURL(file);
+          var v = document.createElement("video");
+          v.preload = "auto"; v.playsInline = true; v.src = url;
+          var finished = false;
+          function fail(e) { if (!finished) { finished = true; try { URL.revokeObjectURL(url); } catch (err) {} reject(e || new Error("compress fail")); } }
+          v.onerror = function () { fail(new Error("video load")); };
+          v.onloadedmetadata = function () {
+            try {
+              var sw = v.videoWidth, sh = v.videoHeight, dur = v.duration;
+              if (!sw || !sh || !dur || !isFinite(dur) || dur <= 0) return fail(new Error("no meta"));
+              var longSide = Math.max(sw, sh);
+              var scale = longSide > 1280 ? 1280 / longSide : 1;
+              var w = Math.max(2, Math.round(sw * scale / 2) * 2);
+              var h = Math.max(2, Math.round(sh * scale / 2) * 2);
+              var canvas = document.createElement("canvas");
+              canvas.width = w; canvas.height = h;
+              var ctx = canvas.getContext("2d");
+              var stopped = false;
+              function drawFrame() {
+                if (stopped) return;
+                try { ctx.drawImage(v, 0, 0, w, h); } catch (e) {}
+                if (typeof v.requestVideoFrameCallback === "function") v.requestVideoFrameCallback(drawFrame);
+                else if (!v.ended) requestAnimationFrame(drawFrame);
+              }
+              var hasAudio = false;
+              try { var tmp = v.captureStream(); hasAudio = tmp.getAudioTracks().length > 0; } catch (e) {}
+              var audioTrack = null;
+              if (hasAudio) {
+                if (!actx || actx.state !== "running") return fail(new Error("audio ctx not running"));
+                try {
+                  var src = actx.createMediaElementSource(v);
+                  var dest = actx.createMediaStreamDestination();
+                  src.connect(dest);
+                  var at = dest.stream.getAudioTracks();
+                  if (at.length) audioTrack = at[0];
+                } catch (e) { audioTrack = null; }
+                if (!audioTrack) return fail(new Error("no audio track"));
+              }
+              var stream = canvas.captureStream(0);
+              if (audioTrack) stream.addTrack(audioTrack);
+              var mime = "";
+              ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].forEach(function (m) {
+                if (!mime && window.MediaRecorder.isTypeSupported && window.MediaRecorder.isTypeSupported(m)) mime = m;
+              });
+              var rec;
+              try {
+                rec = mime
+                  ? new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2500000, audioBitsPerSecond: 128000 })
+                  : new MediaRecorder(stream, { videoBitsPerSecond: 2500000, audioBitsPerSecond: 128000 });
+              } catch (e) { return fail(e); }
+              var chunks = [];
+              rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+              rec.onerror = function () { fail(new Error("recorder error")); };
+              var progTimer = setInterval(function () {
+                if (dur && onProgress) onProgress(Math.min(99, Math.round(v.currentTime / dur * 100)));
+              }, 300);
+              rec.onstop = function () {
+                clearInterval(progTimer);
+                stopped = true;
+                if (finished) return;
+                finished = true;
+                try { URL.revokeObjectURL(url); } catch (e) {}
+                var blob = new Blob(chunks, { type: mime || "video/webm" });
+                if (!blob.size) return reject(new Error("empty"));
+                var base = (file.name || "video").replace(/\.[^.]+$/, "") || "video";
+                resolve(new File([blob], base + "-720p.webm", { type: blob.type }));
+              };
+              v.onended = function () { try { if (rec.state !== "inactive") rec.stop(); } catch (e) {} };
+              if (typeof v.requestVideoFrameCallback === "function") v.requestVideoFrameCallback(drawFrame);
+              else requestAnimationFrame(drawFrame);
+              try { rec.start(500); } catch (e) { return fail(e); }
+              var pp = v.play();
+              if (pp && pp.catch) pp.catch(function () { fail(new Error("play fail")); });
+              setTimeout(function () { try { if (rec.state !== "inactive") rec.stop(); } catch (e) {} }, Math.ceil(dur * 1000) + 8000);
+            } catch (e) { fail(e); }
+          };
+        });
+      }
+      /* Compress a big video first; anything else (or a failed compress)
+         uploads as-is. The progress bar is only touched when the caller
+         is already showing it (the Share flow) — the quick story input
+         uploads silently, so the bar never gets stuck visible there. */
+      function maybeCompress(file, mediaType, label) {
+        if (mediaType !== "video" || !file || file.size <= COMPRESS_MIN_BYTES) return Promise.resolve(file);
+        var bar = $("#uploadBar");
+        var showing = !!(bar && !bar.hidden);
+        if (showing) showUploadProgress(label + " compress ho raha hai…", 0);
+        return compressVideo(file, function (pct) { if (showing) showUploadProgress(label + " compress ho raha hai…", pct); })
+          .then(function (small) {
+            if (showing) showUploadProgress(label + " upload ho raha hai…", 0);
+            return small;
+          })
+          .catch(function () {
+            if (showing) showUploadProgress(label + " upload ho raha hai…", 0);
+            return file;
+          });
+      }
       /* ---------- background upload with % progress ----------
          fetch() cannot report upload progress, so file uploads go through
          XMLHttpRequest, whose upload.onprogress gives real bytes. The
@@ -2336,50 +2500,54 @@ exception when duplicate_object then null; end $$;</textarea>
         if (bar) bar.hidden = true;
       }
       function sbPublishPost(file, mediaType, kind, caption, author, onProgress, ratio) {
-        var id = "p" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
-        var rawExt = (file.name && file.name.split(".").pop()) || (mediaType === "video" ? "mp4" : "jpg");
-        var ext = String(rawExt).replace(/[^a-z0-9]/gi, "").toLowerCase() || (mediaType === "video" ? "mp4" : "jpg");
-        var path = "posts/" + id + "." + ext;
-        return sbUploadFile(path, file, onProgress).then(function () {
-          var url = sbBase() + "/storage/v1/object/public/media/" + path;
-          var row = {
-            id: id, kind: kind, media_type: mediaType, media_url: url, caption: caption,
-            username: author.username, display_name: author.name, avatar_url: "", like_count: 0,
-            ratio: ratio || "original", hide_likes: false, comments_off: false
-          };
-          var baseRow = {
-            id: id, kind: kind, media_type: mediaType, media_url: url, caption: caption,
-            username: author.username, display_name: author.name, avatar_url: "", like_count: 0
-          };
-          /* If the new columns are not in the table yet (SQL not re-run), the
-             first insert fails — retry with the original fields so the post
-             still publishes, just without the new flags. */
-          return sbApi("/rest/v1/posts", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) })
-            .catch(function () { return sbApi("/rest/v1/posts", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(baseRow) }); })
-            .then(function () {
-              return {
-                id: id, kind: kind, mediaType: mediaType, url: url, caption: caption,
-                liked: false, likeCount: 0, saved: false, comments: [], ts: Date.now(),
-                shared: true, author: author, ratio: ratio || "original", hideLikes: false, commentsOff: false, views: 0
-              };
-            });
+        return maybeCompress(file, mediaType, kind === "reel" ? "Reel" : "Post").then(function (upFile) {
+          var id = "p" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+          var rawExt = (upFile.name && upFile.name.split(".").pop()) || (mediaType === "video" ? "mp4" : "jpg");
+          var ext = String(rawExt).replace(/[^a-z0-9]/gi, "").toLowerCase() || (mediaType === "video" ? "mp4" : "jpg");
+          var path = "posts/" + id + "." + ext;
+          return sbUploadFile(path, upFile, onProgress).then(function () {
+            var url = sbBase() + "/storage/v1/object/public/media/" + path;
+            var row = {
+              id: id, kind: kind, media_type: mediaType, media_url: url, caption: caption,
+              username: author.username, display_name: author.name, avatar_url: "", like_count: 0,
+              ratio: ratio || "original", hide_likes: false, comments_off: false
+            };
+            var baseRow = {
+              id: id, kind: kind, media_type: mediaType, media_url: url, caption: caption,
+              username: author.username, display_name: author.name, avatar_url: "", like_count: 0
+            };
+            /* If the new columns are not in the table yet (SQL not re-run), the
+               first insert fails — retry with the original fields so the post
+               still publishes, just without the new flags. */
+            return sbApi("/rest/v1/posts", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) })
+              .catch(function () { return sbApi("/rest/v1/posts", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(baseRow) }); })
+              .then(function () {
+                return {
+                  id: id, kind: kind, mediaType: mediaType, url: url, caption: caption,
+                  liked: false, likeCount: 0, saved: false, comments: [], ts: Date.now(),
+                  shared: true, author: author, ratio: ratio || "original", hideLikes: false, commentsOff: false, views: 0
+                };
+              });
+          });
         });
       }
       function sbPublishStory(file, mediaType, author, onProgress) {
-        var id = "s" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
-        var rawExt = (file.name && file.name.split(".").pop()) || (mediaType === "video" ? "mp4" : "jpg");
-        var ext = String(rawExt).replace(/[^a-z0-9]/gi, "").toLowerCase() || (mediaType === "video" ? "mp4" : "jpg");
-        var path = "stories/" + id + "." + ext;
-        return sbUploadFile(path, file, onProgress).then(function () {
-          var url = sbBase() + "/storage/v1/object/public/media/" + path;
-          var row = {
-            id: id, media_type: mediaType, media_url: url,
-            username: author.username, display_name: author.name, avatar_url: ""
-          };
-          return sbApi("/rest/v1/stories", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) })
-            .then(function () {
-              return { id: id, mediaType: mediaType, url: url, ts: Date.now(), shared: true, author: author };
-            });
+        return maybeCompress(file, mediaType, "Story").then(function (upFile) {
+          var id = "s" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+          var rawExt = (upFile.name && upFile.name.split(".").pop()) || (mediaType === "video" ? "mp4" : "jpg");
+          var ext = String(rawExt).replace(/[^a-z0-9]/gi, "").toLowerCase() || (mediaType === "video" ? "mp4" : "jpg");
+          var path = "stories/" + id + "." + ext;
+          return sbUploadFile(path, upFile, onProgress).then(function () {
+            var url = sbBase() + "/storage/v1/object/public/media/" + path;
+            var row = {
+              id: id, media_type: mediaType, media_url: url,
+              username: author.username, display_name: author.name, avatar_url: ""
+            };
+            return sbApi("/rest/v1/stories", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) })
+              .then(function () {
+                return { id: id, mediaType: mediaType, url: url, ts: Date.now(), shared: true, author: author };
+              });
+          });
         });
       }
       function sbInsertComment(post, cmt) {
@@ -2561,6 +2729,7 @@ exception when duplicate_object then null; end $$;</textarea>
            previous account's notifications after a switch. */
         state.notifications = [];
         updateBadgeFab();
+        loadLastSeenMsg();
         renderStories(); renderFeed(); renderExplore(); renderReels(); renderNotifications(); renderProfile(); renderConversations();
       }
       function switchToAccount(username) {
@@ -2897,7 +3066,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-1";
+      var APP_VERSION = "2026-11-10-2";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
@@ -3129,6 +3298,54 @@ exception when duplicate_object then null; end $$;</textarea>
             return true;
           }).catch(function () { return false; });
       }
+      /* ---------- message notifications (friend / admin) ----------
+         The app polls for new messages every 30 seconds. A message that
+         arrived for this account (from a friend or from the admin) raises
+         an in-app notification + a toast, even while the user is watching
+         videos on another tab. lastSeenMsgTs is per-account, so switching
+         accounts never re-notifies old messages, and a restart does not
+         either. (Push while the app is fully closed needs a Supabase push
+         setup — a separate step.) */
+      var lastSeenMsgTs = 0, lastMsgPollTs = 0;
+      function loadLastSeenMsg() {
+        try { lastSeenMsgTs = parseInt(localStorage.getItem("ireel_lastmsg_" + state.user.username) || "0", 10) || 0; } catch (e) { lastSeenMsgTs = 0; }
+        if (!lastSeenMsgTs) { lastSeenMsgTs = Date.now(); saveLastSeenMsg(); }
+        lastMsgPollTs = Date.now();
+      }
+      function saveLastSeenMsg() {
+        try { localStorage.setItem("ireel_lastmsg_" + state.user.username, String(lastSeenMsgTs)); } catch (e) {}
+      }
+      function pollNewMessages() {
+        if (!sb.connected || !state.user || !state.user.username) return;
+        var since = new Date(Math.max(lastMsgPollTs, lastSeenMsgTs)).toISOString();
+        sbApi("/rest/v1/messages?select=*&recipient=eq." + encodeURIComponent(state.user.username) + "&created_at=gt." + encodeURIComponent(since) + "&order=created_at.asc&limit=20")
+          .then(function (rows) {
+            if (!rows || !rows.length) { lastMsgPollTs = Date.now(); return; }
+            var have = {};
+            dmMessages.forEach(function (m) { have[m.id] = true; });
+            var maxTs = lastSeenMsgTs, latest = null;
+            rows.forEach(function (r) {
+              if (!/^[A-Za-z0-9_-]+$/.test(String(r.id))) return;
+              var ts = Date.parse(r.created_at) || Date.now();
+              if (ts > maxTs) maxTs = ts;
+              if (!have[r.id]) {
+                dmMessages.push({ id: String(r.id), sender: r.sender, recipient: r.recipient, text: r.text, ts: ts, shared: true });
+                registerPerson(r.sender, r.sender, null);
+              }
+              if (r.sender && r.sender !== state.user.username) {
+                var tag = (r.sender === "satyamkumar") ? "⚕️ " : "";
+                notify("💬 " + tag + r.sender + ": " + String(r.text || "").slice(0, 60));
+                latest = r;
+              }
+            });
+            dmMessages.sort(function (a, b) { return a.ts - b.ts; });
+            lastSeenMsgTs = maxTs; saveLastSeenMsg();
+            lastMsgPollTs = Date.now();
+            renderConversations();
+            if (currentView === "chat") renderChat();
+            if (latest && currentChatUser !== latest.sender) toast("💬 " + latest.sender + " ne message bheja");
+          }).catch(function () {});
+      }
       function openPeoplePicker() {
         $("#peopleSearch").value = "";
         renderPeopleList("");
@@ -3200,6 +3417,7 @@ exception when duplicate_object then null; end $$;</textarea>
         renderProfile();
         renderConversations();
         updateBadgeFab();
+        applyVivid();
         /* Auto-refresh: poora shared feed har 2 minute me refresh hota hai,
            taaki nayi posts bina Refresh dabaye aa jayein. Sheet khuli ho,
            upload chal raha ho, ya comment likh rahe ho to skip — taaki
@@ -3216,6 +3434,9 @@ exception when duplicate_object then null; end $$;</textarea>
           var st = hv ? hv.scrollTop : 0;
           loadSharedFeed(false).then(function () { if (hv) hv.scrollTop = st; }).catch(function () {});
         }, 120000);
+        /* Message notifications: check for new messages every 30 seconds,
+           so a friend's or the admin's message pops up while watching. */
+        setInterval(function () { pollNewMessages(); }, 30000);
 
         $$("#bottomNav button").forEach(function (b) {
           b.addEventListener("click", function () {
@@ -3402,6 +3623,12 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#clearCacheBtn").addEventListener("click", function () { askConfirm("Clear cache?", "App ke saved files saaf ho jayenge. Tumhare account, posts aur messages safe rahenge.", clearAppCache); });
         $("#clearDataBtn").addEventListener("click", function () { askConfirm("Clear data?", "Is phone ka saara ireel data saaf ho jayega — accounts, likes, history sab. Uske baad login screen aayegi.", clearAppData); });
         $("#clearHistoryBtn").addEventListener("click", function () { askConfirm("Clear watch history?", "Dekhi hui videos ki list saaf ho jayegi.", clearWatchHistory); });
+        $("#vividBtn").addEventListener("click", function () {
+          vividOn = !vividOn;
+          try { localStorage.setItem("ireel_vivid_v1", vividOn ? "1" : "0"); } catch (e) {}
+          applyVivid();
+          toast(vividOn ? "Vivid colours on — videos zyada colourful dikhengi" : "Vivid colours off");
+        });
         $("#confirmOk").addEventListener("click", function () { closeSheet("confirmScrim"); var f = pendingConfirmFn; pendingConfirmFn = null; if (f) f(); });
         $("#confirmNo").addEventListener("click", function () { pendingConfirmFn = null; closeSheet("confirmScrim"); });
         /* Install app (one tap, no browser bar) + update check (always latest version) */
