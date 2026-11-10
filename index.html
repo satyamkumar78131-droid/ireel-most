@@ -1658,7 +1658,12 @@ exception when duplicate_object then null; end $$;</textarea>
               if (p && !p.liked) toggleLike(id, true);
             } else if (p && p.mediaType === "video") {
               var v = $("video", el);
-              if (v) { if (v.paused) v.play(); else v.pause(); }
+              if (v) {
+                if (v.paused) {
+                  $$("video", root).forEach(function (x) { if (x !== v) x.pause(); });
+                  v.play();
+                } else v.pause();
+              }
             }
             lastTap = now;
           });
@@ -1697,7 +1702,12 @@ exception when duplicate_object then null; end $$;</textarea>
         if (!("IntersectionObserver" in window)) return;
         feedObserver = new IntersectionObserver(function (entries) {
           entries.forEach(function (e) {
-            if (e.isIntersecting) { var pr = e.target.play(); if (pr) pr.catch(function () {}); }
+            if (e.isIntersecting) {
+              /* Only one video may play at a time — pause the rest first,
+                 or two videos' audio plays together. */
+              $$("video", root).forEach(function (v) { if (v !== e.target) v.pause(); });
+              var pr = e.target.play(); if (pr) pr.catch(function () {});
+            }
             else e.target.pause();
           });
         }, { threshold: 0.55 });
@@ -2379,11 +2389,13 @@ exception when duplicate_object then null; end $$;</textarea>
               canvas.width = w; canvas.height = h;
               var ctx = canvas.getContext("2d");
               var stopped = false;
+              /* Draw with requestAnimationFrame (not requestVideoFrameCallback):
+                 rAF fires reliably while the page is open, so the canvas — and
+                 the recorded video — never freezes on one frame. */
               function drawFrame() {
                 if (stopped) return;
                 try { ctx.drawImage(v, 0, 0, w, h); } catch (e) {}
-                if (typeof v.requestVideoFrameCallback === "function") v.requestVideoFrameCallback(drawFrame);
-                else if (!v.ended) requestAnimationFrame(drawFrame);
+                if (!v.ended) requestAnimationFrame(drawFrame);
               }
               var hasAudio = false;
               try { var tmp = v.captureStream(); hasAudio = tmp.getAudioTracks().length > 0; } catch (e) {}
@@ -2429,8 +2441,7 @@ exception when duplicate_object then null; end $$;</textarea>
                 resolve(new File([blob], base + "-720p.webm", { type: blob.type }));
               };
               v.onended = function () { try { if (rec.state !== "inactive") rec.stop(); } catch (e) {} };
-              if (typeof v.requestVideoFrameCallback === "function") v.requestVideoFrameCallback(drawFrame);
-              else requestAnimationFrame(drawFrame);
+              requestAnimationFrame(drawFrame);
               try { rec.start(500); } catch (e) { return fail(e); }
               var pp = v.play();
               if (pp && pp.catch) pp.catch(function () { fail(new Error("play fail")); });
@@ -3066,7 +3077,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-3";
+      var APP_VERSION = "2026-11-10-4";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
