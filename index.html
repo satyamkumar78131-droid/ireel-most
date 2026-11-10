@@ -3066,14 +3066,20 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-2";
+      var APP_VERSION = "2026-11-10-3";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
       }
       function showInstallBar() {
         if (isStandalone()) return;
-        try { if (sessionStorage.getItem("ireel_install_dismissed")) return; } catch (e) {}
+        /* Dismissal is per app version — dismissing it once must not hide
+           it forever. An old dismissal (or one from a previous version)
+           does not count, so the bar comes back on every update. */
+        try {
+          var dv = sessionStorage.getItem("ireel_install_dismissed");
+          if (dv && dv === APP_VERSION) return;
+        } catch (e) {}
         var b = $("#installBar");
         if (b) b.hidden = false;
       }
@@ -3085,7 +3091,17 @@ exception when duplicate_object then null; end $$;</textarea>
             deferredInstallPrompt.userChoice.then(function () { deferredInstallPrompt = null; hideInstallBar(); }).catch(function () {});
           } else { deferredInstallPrompt = null; hideInstallBar(); }
         } else {
-          toast("Chrome ke ⋮ menu → 'Add to Home screen' ya 'Install app' chuno");
+          /* No PWA install prompt (e.g. opened from a link / Custom Tab,
+             where Chrome never offers one) — download the APK instead.
+             Installing it once removes the browser bar forever. */
+          var a = document.createElement("a");
+          a.href = "ireel.apk";
+          a.download = "ireel.apk";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          toast("APK download ho raha hai — install karo, bar hamesha ke liye gayab");
+          hideInstallBar();
         }
       }
       function showUpdateBar() { var b = $("#updateBar"); if (b) b.hidden = false; }
@@ -3633,7 +3649,7 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#confirmNo").addEventListener("click", function () { pendingConfirmFn = null; closeSheet("confirmScrim"); });
         /* Install app (one tap, no browser bar) + update check (always latest version) */
         $("#installAppBtn").addEventListener("click", installApp);
-        $("#installDismiss").addEventListener("click", function () { try { sessionStorage.setItem("ireel_install_dismissed", "1"); } catch (e) {} hideInstallBar(); });
+        $("#installDismiss").addEventListener("click", function () { try { sessionStorage.setItem("ireel_install_dismissed", APP_VERSION); } catch (e) {} hideInstallBar(); });
         $("#profileInstallBtn").addEventListener("click", installApp);
         $("#updateReloadBtn").addEventListener("click", function () { location.reload(); });
         $("#headFsBtn").addEventListener("click", toggleFullscreen);
