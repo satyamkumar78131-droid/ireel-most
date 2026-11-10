@@ -343,6 +343,17 @@
         align-items:flex-end; justify-content:center;
       }
       .scrim.open{display:flex;}
+      /* Login gate — shown when nobody is signed in. Covers the whole app
+         (below the auth sheet) so NOTHING runs without login: no feed, no
+         videos, no profile, no nav. Says "Login first" in English. */
+      .login-gate{
+        position:absolute; inset:0; z-index:55; display:none;
+        flex-direction:column; align-items:center; justify-content:center;
+        gap:14px; background:var(--bg); text-align:center; padding:24px;
+      }
+      .login-gate.open{display:flex;}
+      .login-gate h1{font-size:30px; font-weight:800; letter-spacing:.5px;}
+      .login-gate p{font-size:15px; color:var(--muted); max-width:300px; line-height:1.5;}
       .sheet{
         width:100%; max-width:480px; background:var(--surface); border-radius:16px 16px 0 0;
         padding:10px 14px calc(16px + env(safe-area-inset-bottom)); animation:up .22s ease;
@@ -738,6 +749,15 @@
         </button>
         <button data-nav="profile" aria-label="Profile"><span id="navAvatar"></span></button>
       </nav>
+
+      <!-- LOGIN GATE — nothing runs without login. Shown on a fresh device
+           and after logout; hidden once an account signs in. -->
+      <div class="login-gate" id="loginGate">
+        <div class="logo" style="font-size:44px;">ireel</div>
+        <h1>Login first</h1>
+        <p>Please log in or sign up to use ireel — posts, reels, stories and messages are only for signed-in users.</p>
+        <button class="btn block" id="loginGateBtn" style="max-width:280px;">Log in / Sign up</button>
+      </div>
 
       <!-- CREATE SHEET -->
       <div class="scrim" id="createScrim">
@@ -2787,6 +2807,7 @@ exception when duplicate_object then null; end $$;</textarea>
         state.user.email = acct.email || "";
         state.user.avatar = acct.avatar || null;
         state.guest = acct.username !== "satyamkumar";
+        hideLoginGate();
         syncMeToPeople();
         loadMyLikesSaves(acct.username);
         loadWatchHistory(acct.username);
@@ -2920,6 +2941,7 @@ exception when duplicate_object then null; end $$;</textarea>
         try { localStorage.removeItem(CURRENT_KEY); } catch (e) {}
         state.user = { name: "", username: "", bio: "", email: "", avatar: null };
         state.guest = true;
+        showLoginGate();
         if (sb.connected) loadSharedFeed(false);
         switchView("home");
         openAuth("choice");
@@ -3032,6 +3054,11 @@ exception when duplicate_object then null; end $$;</textarea>
         if (tab === "switch") renderSwitchList();
       }
       function openAuth(tab) { setAuthTab(tab || "choice"); openSheet("authScrim"); }
+      /* Login gate: without a signed-in account nothing in the app runs.
+         The gate covers the whole app and says "Login first"; the auth
+         sheet opens above it. Hidden as soon as an account signs in. */
+      function showLoginGate() { var g = $("#loginGate"); if (g) g.classList.add("open"); }
+      function hideLoginGate() { var g = $("#loginGate"); if (g) g.classList.remove("open"); }
       function renderSwitchList() {
         var list = $("#switchList");
         /* Only accounts that actually signed in on THIS device belong here.
@@ -3131,7 +3158,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-6";
+      var APP_VERSION = "2026-11-10-7";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
@@ -3486,22 +3513,27 @@ exception when duplicate_object then null; end $$;</textarea>
         } catch (e) {}
         handleGoogleReturn();
         /* Fresh device? Nobody has signed in here yet — the app must NOT
-           silently open as the admin account. Clear any default user and
-           force the login/signup choice so every person uses the app as
-           themselves. */
-        if (!savedAcct && !googleReturning) {
+           silently open as the admin account. Clear any default user,
+           block everything behind the "Login first" gate, and force the
+           login/signup choice so every person uses the app as themselves.
+           Nothing runs without login: no feed, no videos, no profile. */
+        var needsLogin = !savedAcct && !googleReturning;
+        if (needsLogin) {
           state.user = { name: "", username: "", bio: "", email: "", avatar: null };
           state.guest = true;
+          showLoginGate();
           openAuth("choice");
         }
         syncMeToPeople();
-        renderStories();
-        renderFeed();
-        renderExplore();
-        renderReels();
-        renderNotifications();
-        renderProfile();
-        renderConversations();
+        if (!needsLogin) {
+          renderStories();
+          renderFeed();
+          renderExplore();
+          renderReels();
+          renderNotifications();
+          renderProfile();
+          renderConversations();
+        }
         updateBadgeFab();
         applyVivid();
         /* Auto-refresh: poora shared feed har 2 minute me refresh hota hai,
@@ -3704,6 +3736,7 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#badgeTakeBtn").addEventListener("click", function () { if (badgeSelectedUser) setBadge(badgeSelectedUser, false); else toast("Pehle ek player chuno"); });
         $("#badgeClose").addEventListener("click", function () { closeSheet("badgeScrim"); });
         /* Settings: clear cache / clear data / clear watch history (all with in-app OK confirm) */
+        $("#loginGateBtn").addEventListener("click", function () { openAuth("choice"); });
         $("#settingsBtn").addEventListener("click", function () { renderErrLog(); openSheet("settingsScrim"); });
         $("#clearErrBtn").addEventListener("click", function () {
           try { localStorage.removeItem(ERR_KEY); } catch (e) {}
