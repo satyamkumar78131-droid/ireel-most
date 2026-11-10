@@ -1037,6 +1037,10 @@ exception when duplicate_object then null; end $$;</textarea>
           <button class="btn ghost block" id="clearHistoryBtn" style="margin-top:8px;">Clear watch history</button>
           <button class="btn block" id="vividBtn" style="margin-top:8px;">Vivid colours: Off</button>
           <p class="dl-note">Videos aur photos zyada colourful aur HDR jaisi dikhengi — sabhi videos pe chalta hai.</p>
+          <h3 style="margin-top:14px;">Error details (English)</h3>
+          <p class="dl-note">Agar app me koi problem aaye (video na chale, upload fail ho, feed na khule), to uski wajah yahan English me dikhegi. Screenshot bhej do to problem samajh me aayegi.</p>
+          <div id="errLog" style="font-size:12px;line-height:1.5;max-height:180px;overflow:auto;background:#fff;border:1px solid #eee;border-radius:10px;padding:8px;"></div>
+          <button class="btn ghost block" id="clearErrBtn" style="margin-top:8px;">Clear error log</button>
           <button class="btn ghost block" id="settingsClose" style="margin-top:8px;">Close</button>
         </div>
       </div>
@@ -1329,6 +1333,40 @@ exception when duplicate_object then null; end $$;</textarea>
         clearTimeout(toastTimer);
         toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2400);
       }
+      /* ---- Error details (always in English) ----
+         When something fails while using the app — a video that will not
+         play, an upload that fails, the feed not loading — the exact
+         reason is saved here (max 20, newest first) and can be seen in
+         Settings > Error details. This is how a video problem gets
+         diagnosed instead of just "not playing". */
+      var ERR_KEY = "ireel_errors_v1";
+      function readErrLog() {
+        try { return JSON.parse(localStorage.getItem(ERR_KEY) || "[]") || []; } catch (e) { return []; }
+      }
+      function logError(source, message) {
+        try {
+          var list = readErrLog();
+          list.unshift({ t: Date.now(), s: String(source || "app"), m: String(message || "Unknown error") });
+          if (list.length > 20) list.length = 20;
+          localStorage.setItem(ERR_KEY, JSON.stringify(list));
+        } catch (e) {}
+      }
+      function mediaErrText(v) {
+        var e = v && v.error;
+        if (!e) return "Video failed to load (no error code).";
+        var names = { 1: "aborted", 2: "network error", 3: "decode error — file may use an unsupported codec", 4: "format not supported" };
+        var code = e.code || 0;
+        return "Video error " + code + " (" + (names[code] || "unknown") + ")" + (e.message ? ": " + e.message : "") + ".";
+      }
+      function showError(source, message) {
+        logError(source, message);
+        toast("Error: " + message);
+      }
+      window.addEventListener("error", function (ev) {
+        var msg = (ev && ev.message) ? String(ev.message) : "Unknown error";
+        if (/Script error/i.test(msg)) return;
+        logError("app", msg);
+      });
       function esc(s) {
         return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
           return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -1713,6 +1751,13 @@ exception when duplicate_object then null; end $$;</textarea>
         }, { threshold: 0.55 });
         $$("video", root).forEach(function (v) {
           feedObserver.observe(v);
+          /* If a video will not play, record the exact reason (in English)
+             so Settings > Error details can say why. */
+          v.addEventListener("error", function () {
+            var src = "";
+            try { src = (v.currentSrc || v.src || "").split("/").slice(-2).join("/"); } catch (e) {}
+            logError("video", mediaErrText(v) + (src ? " File: " + src : ""));
+          });
           attachWatchTracker(v, function () { var w = v.closest("[data-media]"); return w ? w.getAttribute("data-media") : null; });
         });
       }
@@ -1891,6 +1936,11 @@ exception when duplicate_object then null; end $$;</textarea>
         });
         $$(".reel-slide video", track).forEach(function (v) {
           v.addEventListener("click", function () { if (v.paused) v.play(); else v.pause(); });
+          v.addEventListener("error", function () {
+            var src = "";
+            try { src = (v.currentSrc || v.src || "").split("/").slice(-2).join("/"); } catch (e) {}
+            logError("video", mediaErrText(v) + (src ? " File: " + src : ""));
+          });
           attachWatchTracker(v, function () { var s = v.closest(".reel-slide"); return s ? s.getAttribute("data-slide") : null; });
           v.addEventListener("timeupdate", function () {
             var slide = v.closest(".reel-slide");
@@ -2464,7 +2514,8 @@ exception when duplicate_object then null; end $$;</textarea>
             if (showing) showUploadProgress(label + " upload ho raha hai…", 0);
             return small;
           })
-          .catch(function () {
+          .catch(function (e) {
+            logError("compress", "Video compression failed (" + (e && e.message ? e.message : "unknown") + ") — uploading original file instead.");
             if (showing) showUploadProgress(label + " upload ho raha hai…", 0);
             return file;
           });
@@ -2489,9 +2540,9 @@ exception when duplicate_object then null; end $$;</textarea>
           }
           xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) resolve();
-            else reject(new Error("upload " + xhr.status));
+            else { logError("upload", "Upload failed: server returned HTTP " + xhr.status + "."); reject(new Error("upload " + xhr.status)); }
           };
-          xhr.onerror = function () { reject(new Error("upload failed")); };
+          xhr.onerror = function () { logError("upload", "Upload failed: network error — check internet connection."); reject(new Error("upload failed")); };
           xhr.send(file);
         });
       }
@@ -3077,7 +3128,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-4";
+      var APP_VERSION = "2026-11-10-5";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
@@ -3645,7 +3696,23 @@ exception when duplicate_object then null; end $$;</textarea>
         $("#badgeTakeBtn").addEventListener("click", function () { if (badgeSelectedUser) setBadge(badgeSelectedUser, false); else toast("Pehle ek player chuno"); });
         $("#badgeClose").addEventListener("click", function () { closeSheet("badgeScrim"); });
         /* Settings: clear cache / clear data / clear watch history (all with in-app OK confirm) */
-        $("#settingsBtn").addEventListener("click", function () { openSheet("settingsScrim"); });
+        $("#settingsBtn").addEventListener("click", function () { renderErrLog(); openSheet("settingsScrim"); });
+        $("#clearErrBtn").addEventListener("click", function () {
+          try { localStorage.removeItem(ERR_KEY); } catch (e) {}
+          renderErrLog();
+          toast("Error log cleared");
+        });
+        function renderErrLog() {
+          var box = $("#errLog");
+          if (!box) return;
+          var list = readErrLog();
+          if (!list.length) { box.innerHTML = "<i>No errors recorded yet.</i>"; return; }
+          box.innerHTML = list.map(function (e) {
+            var d = new Date(e.t);
+            var hh = ("0" + d.getHours()).slice(-2), mm = ("0" + d.getMinutes()).slice(-2);
+            return "<div style=\"margin-bottom:6px;\"><b>" + hh + ":" + mm + " · " + esc(e.s) + "</b><br>" + esc(e.m) + "</div>";
+          }).join("");
+        }
         $("#settingsClose").addEventListener("click", function () { closeSheet("settingsScrim"); });
         $("#clearCacheBtn").addEventListener("click", function () { askConfirm("Clear cache?", "App ke saved files saaf ho jayenge. Tumhare account, posts aur messages safe rahenge.", clearAppCache); });
         $("#clearDataBtn").addEventListener("click", function () { askConfirm("Clear data?", "Is phone ka saara ireel data saaf ho jayega — accounts, likes, history sab. Uske baad login screen aayegi.", clearAppData); });
