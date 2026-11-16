@@ -163,19 +163,24 @@
       /* Vivid mode: colours pop like HDR, on every video and photo. */
       body.vivid video{filter:saturate(1.4) contrast(1.12) brightness(1.03);}
       body.vivid img{filter:saturate(1.25) contrast(1.05);}
-      /* ---------- Startup splash (v2026-11-10-11) ---------- */
+      /* ---------- Startup splash (v2026-11-11-12) ----------
+         Dotless "ıreel" fades in, a glowing dot pops out of the text, flies
+         up in an arc and lands on the "i", then the word shines with
+         sparkles. The dot is nested in the "ı" span so it lands exactly
+         over the stem on any screen width; flight offsets are px from that
+         anchor (word centre ~56px right, mid-text ~30px down at 52px). */
       .splash{position:fixed; inset:0; z-index:999; background:radial-gradient(120% 120% at 50% 20%, #1c1033 0%, #0b0b0f 60%); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; overflow:hidden; transition:opacity .45s ease;}
       .splash.hide{opacity:0; pointer-events:none;}
-      .splash .s-logo{font-size:52px; font-weight:900; letter-spacing:1px; background:linear-gradient(90deg,#fa7e1e,#d62976,#962fbf,#fa7e1e); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:shineSweep 1.8s linear infinite;}
+      .splash .s-logo{position:relative; font-size:52px; font-weight:900; letter-spacing:1px; background:linear-gradient(90deg,#fa7e1e,#d62976,#962fbf,#fa7e1e); background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:logoIn .45s ease both, shineSweep 1.8s linear infinite, logoBloom 1.3s ease 1.5s both;}
+      @keyframes logoIn{from{opacity:0; transform:scale(.92) translateY(8px);}to{opacity:1; transform:scale(1) translateY(0);}}
       @keyframes shineSweep{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
-      .splash .s-satya{position:relative; font-size:30px; font-weight:900; letter-spacing:8px; margin-top:14px; color:#fff; text-shadow:0 0 18px rgba(250,126,30,.8), 0 0 42px rgba(214,41,118,.6);}
-      .splash .s-satya .cut{position:absolute; inset:0; color:#ffe9c9; clip-path:inset(0 0 100% 0); animation:cutReveal .5s ease .9s forwards;}
-      @keyframes cutReveal{to{clip-path:inset(0 0 0 0);}}
-      .splash .s-blade{position:absolute; left:-30%; top:50%; width:160%; height:3px; background:linear-gradient(90deg,transparent,#fff,#ffd166,transparent); box-shadow:0 0 18px #ffd166, 0 0 40px rgba(255,209,102,.8); transform:rotate(-18deg) translateX(-120%); animation:bladeSlash .55s cubic-bezier(.6,0,.9,.4) .7s forwards;}
-      @keyframes bladeSlash{to{transform:rotate(-18deg) translateX(120%);}}
+      @keyframes logoBloom{0%{filter:drop-shadow(0 0 0 rgba(255,255,255,0));}30%{filter:drop-shadow(0 0 22px rgba(255,255,255,.95)) drop-shadow(0 0 46px rgba(250,126,30,.7));}60%{filter:drop-shadow(0 0 10px rgba(255,255,255,.6)) drop-shadow(0 0 26px rgba(214,41,118,.55));}100%{filter:drop-shadow(0 0 16px rgba(255,255,255,.8)) drop-shadow(0 0 34px rgba(150,47,191,.5));}}
+      .splash .s-i{position:relative; display:inline-block;}
+      .splash .s-flydot{position:absolute; left:50%; top:0; width:11px; height:11px; margin-left:-5.5px; border-radius:50%; background:radial-gradient(circle at 35% 35%, #fff, #ffd166 45%, #d62976 100%); box-shadow:0 0 10px 2px rgba(255,209,102,.9), 0 0 26px 6px rgba(214,41,118,.55); opacity:0; animation:dotFly 1.15s cubic-bezier(.45,.05,.35,1) .35s forwards;}
+      @keyframes dotFly{0%{opacity:0; transform:translate(56px,30px) scale(.15);}30%{opacity:1; transform:translate(56px,30px) scale(1);}60%{opacity:1; transform:translate(30px,-4px) scale(1);}82%{opacity:1; transform:translate(4px,-1px) scale(1.18);}100%{opacity:1; transform:translate(0,2px) scale(1);}}
+      .splash .s-spark{position:absolute; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:#fff; box-shadow:0 0 8px 2px rgba(255,255,255,.9); opacity:0; animation:sparkBurst .9s ease-out 1.6s forwards;}
+      @keyframes sparkBurst{0%{opacity:0; transform:translate(0,0) scale(.4);}25%{opacity:1; transform:translate(calc(var(--dx)*.4),calc(var(--dy)*.4)) scale(1);}100%{opacity:0; transform:translate(var(--dx),var(--dy)) scale(.2);}}
       .splash .s-powered{margin-top:18px; font-size:12px; letter-spacing:4px; color:rgba(255,255,255,.75);}
-      .splash .s-dot{position:absolute; width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.8); animation:floatUp 2.4s ease-in infinite;}
-      @keyframes floatUp{0%{transform:translateY(0); opacity:0;}20%{opacity:.9;}100%{transform:translateY(-140px); opacity:0;}}
       /* ---------- Upload progress bar (background upload) ---------- */
       .upload-bar{position:fixed; top:54px; left:0; right:0; z-index:200; background:rgba(0,0,0,.88); color:#fff; padding:9px 14px 10px; font-size:13px; font-weight:600; box-shadow:0 4px 16px rgba(0,0,0,.35);}
       .upload-bar[hidden]{display:none;}
@@ -1155,16 +1160,10 @@ exception when duplicate_object then null; end $$;</textarea>
         </div>
       </div>
 
-      <!-- STARTUP SPLASH (v2026-11-10-11): ireel logo + shining name + katana cut through SATYA. Dismissed by JS after ~2.5s or on tap; never blocks login. -->
+      <!-- STARTUP SPLASH (v2026-11-11-12): dotless "ıreel" — a glowing dot pops out of the text, flies up and lands on the "i", then the word shines with sparkles + pop/chime SFX. Dismissed by JS after ~2.8s or on tap; never blocks login. -->
       <div class="splash" id="splash" aria-hidden="true">
-        <div class="s-logo">ireel</div>
-        <div class="s-satya">SATYA<span class="cut">SATYA</span><span class="s-blade"></span></div>
+        <div class="s-logo"><span class="s-i">ı<span class="s-flydot"></span></span>reel<span class="s-spark" style="--dx:-58px;--dy:-40px;"></span><span class="s-spark" style="--dx:-34px;--dy:34px;"></span><span class="s-spark" style="--dx:52px;--dy:-38px;"></span><span class="s-spark" style="--dx:62px;--dy:26px;"></span><span class="s-spark" style="--dx:0px;--dy:-48px;"></span><span class="s-spark" style="--dx:-8px;--dy:42px;"></span></div>
         <div class="s-powered">POWERED BY SATYA</div>
-        <span class="s-dot" style="left:18%; bottom:22%; animation-delay:.2s;"></span>
-        <span class="s-dot" style="left:32%; bottom:16%; animation-delay:.9s;"></span>
-        <span class="s-dot" style="left:64%; bottom:24%; animation-delay:.5s;"></span>
-        <span class="s-dot" style="left:78%; bottom:18%; animation-delay:1.2s;"></span>
-        <span class="s-dot" style="left:50%; bottom:12%; animation-delay:1.6s;"></span>
       </div>
       <div class="toast" id="toast"></div>
       <input type="file" id="mediaInput" accept="image/*,video/*" multiple hidden />
@@ -1952,37 +1951,61 @@ exception when duplicate_object then null; end $$;</textarea>
         var b = $("#colorfulBtn");
         if (b) b.textContent = "Colourful video: " + (colorfulOn ? "On" : "Off");
       }
-      /* ---------- startup splash (feature 2C) ----------
-         ireel logo + shining name + katana cut through SATYA, with a
-         synthesized whoosh + chime (WebAudio, no audio file). Shows once on
-         load, dismisses after ~2.5s or on tap. Never blocks the login gate:
-         everything is wrapped in try/catch and the overlay is force-removed
-         after 3s no matter what. */
-      function playSplashSfx() {
+      /* ---------- startup splash (v2026-11-11-12) ----------
+         Dotless "ıreel" — a glowing dot pops out of the text, flies up and
+         lands on the "i" (pop SFX), then the word shines with sparkles
+         (shimmer chime). Shows once on load, dismisses after ~2.8s or on
+         tap. Never blocks the login gate: everything is wrapped in
+         try/catch and the overlay is force-removed after 3.4s no matter what. */
+      /* Splash SFX (WebAudio, no audio file): a soft "pop" when the dot
+         lands on the "i" + a short shimmer chime when the shine starts.
+         Browsers block audio before any user gesture, so the context is
+         created early, resumed on the first tap, and any sound that is
+         still locked is skipped silently — never throws, never blocks. */
+      var splashCtx = null;
+      function getSplashCtx() {
         try {
+          if (splashCtx) return splashCtx;
           var AC = window.AudioContext || window.webkitAudioContext;
-          if (!AC) return;
-          var ctx = new AC();
+          if (!AC) return null;
+          splashCtx = new AC();
+          return splashCtx;
+        } catch (e) { return null; }
+      }
+      function resumeSplashAudio() {
+        try {
+          var ctx = getSplashCtx();
+          if (ctx && ctx.state === "suspended") ctx.resume().catch(function () {});
+        } catch (e) {}
+      }
+      function playSplashPop() {
+        try {
+          var ctx = getSplashCtx();
+          if (!ctx) return;
           if (ctx.state === "suspended") ctx.resume().catch(function () {});
-          var dur = 0.6, buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
-          var data = buf.getChannelData(0);
-          for (var i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-          var src = ctx.createBufferSource(); src.buffer = buf;
-          var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.2;
-          bp.frequency.setValueAtTime(3200, ctx.currentTime);
-          bp.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + dur);
+          if (ctx.state !== "running") return;
+          var t0 = ctx.currentTime + 0.02;
+          var o = ctx.createOscillator(); o.type = "sine";
+          o.frequency.setValueAtTime(520, t0);
+          o.frequency.exponentialRampToValueAtTime(170, t0 + 0.14);
           var g = ctx.createGain();
-          g.gain.setValueAtTime(0.0001, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.08);
-          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
-          src.connect(bp); bp.connect(g); g.connect(ctx.destination);
-          src.start();
-          [880, 1318.5].forEach(function (f, i) {
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.28, t0 + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(t0); o.stop(t0 + 0.2);
+        } catch (e) {}
+      }
+      function playSplashChime() {
+        try {
+          var ctx = getSplashCtx();
+          if (!ctx || ctx.state !== "running") return;
+          [880, 1174.7, 1318.5].forEach(function (f, i) {
             var o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f;
             var og = ctx.createGain();
-            var t0 = ctx.currentTime + 0.9 + i * 0.12;
+            var t0 = ctx.currentTime + i * 0.1;
             og.gain.setValueAtTime(0.0001, t0);
-            og.gain.exponentialRampToValueAtTime(0.12, t0 + 0.02);
+            og.gain.exponentialRampToValueAtTime(0.1, t0 + 0.02);
             og.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.9);
             o.connect(og); og.connect(ctx.destination);
             o.start(t0); o.stop(t0 + 1);
@@ -2000,9 +2023,22 @@ exception when duplicate_object then null; end $$;</textarea>
             setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 500);
           }
           s.addEventListener("click", dismiss);
-          playSplashSfx();
-          setTimeout(dismiss, 2500);
-          setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 3000);
+          /* Prime the audio context now; unlock it on the first tap
+             anywhere (browsers block sound until a user gesture). */
+          try {
+            getSplashCtx();
+            var unlock = function () {
+              resumeSplashAudio();
+              window.removeEventListener("pointerdown", unlock);
+              window.removeEventListener("touchstart", unlock);
+            };
+            window.addEventListener("pointerdown", unlock);
+            window.addEventListener("touchstart", unlock);
+          } catch (e) {}
+          setTimeout(playSplashPop, 1500);   /* dot lands on the "i" */
+          setTimeout(playSplashChime, 1650); /* shine + sparkles start */
+          setTimeout(dismiss, 2800);
+          setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 3400);
         } catch (e) {
           try { var s2 = $("#splash"); if (s2 && s2.parentNode) s2.parentNode.removeChild(s2); } catch (e2) {}
         }
@@ -3082,16 +3118,35 @@ exception when duplicate_object then null; end $$;</textarea>
             xhr.setRequestHeader("Authorization", "Bearer " + sb.key);
             xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
             xhr.setRequestHeader("x-upsert", "true");
-            if (xhr.upload && onProgress) {
+            /* Stall watchdog: on slow mobile data an upload can freeze at
+               one % forever with no error. If no bytes move for 45s, abort
+               so the retry logic below (up to 3 tries) kicks in. NOTE:
+               xhr.abort() fires onabort, NOT onerror, so onabort rejects
+               here — without it the promise would never settle. */
+            var lastProgressAt = Date.now();
+            var lastLoaded = 0;
+            var stallTimer = null;
+            function clearStall() { if (stallTimer) { clearInterval(stallTimer); stallTimer = null; } }
+            if (xhr.upload) {
               xhr.upload.onprogress = function (e) {
-                if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100));
+                if (e.loaded > lastLoaded) { lastLoaded = e.loaded; lastProgressAt = Date.now(); }
+                if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100));
               };
             }
+            stallTimer = setInterval(function () {
+              if (Date.now() - lastProgressAt > 45000) {
+                clearStall();
+                logError("upload", "Upload stalled (no progress for 45s) — aborting, will retry.");
+                try { xhr.abort(); } catch (e2) {}
+              }
+            }, 5000);
             xhr.onload = function () {
+              clearStall();
               if (xhr.status >= 200 && xhr.status < 300) resolve();
               else reject(new Error("upload " + xhr.status));
             };
-            xhr.onerror = function () { reject(new Error("upload failed")); };
+            xhr.onerror = function () { clearStall(); reject(new Error("upload failed")); };
+            xhr.onabort = function () { clearStall(); reject(new Error("upload stalled")); };
             xhr.send(file);
           }).catch(function (err) {
             if (attempts < 3) {
@@ -3699,7 +3754,7 @@ exception when duplicate_object then null; end $$;</textarea>
          A website opened in a browser always shows its address bar — no code
          can hide it. So the app itself asks every user to install it (one tap),
          and it checks version.json so an open app never stays on an old version. */
-      var APP_VERSION = "2026-11-10-11";
+      var APP_VERSION = "2026-11-11-12";
       var deferredInstallPrompt = null;
       function isStandalone() {
         return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
